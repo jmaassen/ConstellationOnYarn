@@ -1,0 +1,59 @@
+<project name="YARNTEST" default="all" basedir=".">
+
+	<property name="jar" value="simpleapp.jar" />
+
+	<property name="hadoopdir" value="/data/jason/Hadoop/hadoop-2.7.0/share/hadoop" />
+
+	<property name="srcdir" value="./src" />
+	<property name="builddir" value="./build" />
+	<property name="distdir" value="./dist" />	
+	<property name="libdir" value="./lib" />	
+
+        <path id="lib.jars">
+		<fileset dir="${hadoopdir}/common">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${hadoopdir}/common/lib">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${hadoopdir}/yarn">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${libdir}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<!-- Internal target - Preparations for building. -->
+	<target name="prepare">
+		<mkdir dir="${distdir}" />
+		<mkdir dir="${builddir}" />
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac includeantruntime="false" destdir="${builddir}" srcdir="${srcdir}" debug="true" includes="**/*.java">
+			<classpath refid="lib.jars" />
+		</javac>
+	</target>
+
+	<!-- Internal target - Builds the JAR file -->
+	<target name="jar" depends="compile">
+		<delete failonerror="false" file="${distdir}/${jar}" />
+
+		<jar jarfile="${distdir}/${jar}" basedir="${builddir}" includes="**">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="all" depends="clean,prepare,compile,jar">
+	</target>
+
+	<!-- remove all generated code -->
+	<target name="clean" description="Removes the ${distdir} directory">
+		<delete failonerror="false" dir="./bin" />
+		<delete failonerror="false" dir="${builddir}" />
+		<delete failonerror="false" dir="${distdir}" />
+	</target>
+</project>
