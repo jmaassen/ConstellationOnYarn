@@ -21,6 +21,9 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.SimpleActivity;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Simple test job that prints the job assigned to it, sleeps for 2 minutes, and sends an event to its parent to signal that it
  * has finished.  
@@ -29,6 +32,8 @@ public class TestJob extends SimpleActivity {
 
     private static final long serialVersionUID = -5546760613223653596L;
 
+    private final static int BUFFERSIZE = 64*1024;
+    
     private final String file;
     private final int blockIndex;
     
@@ -43,11 +48,21 @@ public class TestJob extends SimpleActivity {
         
         System.out.println("TestJob " + file + " / " + blockIndex);
         
+        MessageDigest m = MessageDigest.getInstance("SHA1");
+        
+        byte [] buffer = new byte[BUFFERSIZE];
+        
         try { 
-            Thread.sleep(120*1000);
+            // TODO: Read the block of the file here. Do we have enough info ? Or do we need offset and length instead ? 
+            
+        
+            m.update(buffer);
+            
         } catch (Exception e) { 
-            // ignore
-        }
+            
+        }    
+
+        byte [] digest = m.digest();
         
         getExecutor().send(new Event(identifier(), getParent(), file + "/" + blockIndex));
     }
