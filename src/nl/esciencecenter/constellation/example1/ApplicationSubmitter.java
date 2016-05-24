@@ -45,6 +45,9 @@ public class ApplicationSubmitter {
         // Create yarnClient
         YarnConfiguration conf = new YarnConfiguration();
         YarnClient yarnClient = YarnClient.createYarnClient();
+        
+        System.out.println("YARN config: " + conf);
+        
         yarnClient.init(conf);
         yarnClient.start();
 
