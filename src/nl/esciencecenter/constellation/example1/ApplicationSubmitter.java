@@ -155,12 +155,14 @@ public class ApplicationSubmitter {
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
         File packageFile = new File(appJar);
-        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(new Path(appJar)));
-        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, packageFile.length(), packageFile.lastModified());
+
+        FileSystem fs = FileSystem.get(conf);
+        fs.copyFromLocalFile(false, true, new Path(appJar), new Path(appJar));
         
+        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(new Path(appJar)));
+        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, packageFile.length(), packageFile.lastModified());        
         localResources.put(appJar, r);
         
-        //FileSystem fs = FileSystem.get(conf);
         //addToLocalResources(fs, appJar, appJar, id.toString(), localResources, null);
 
         // Setup CLASSPATH for ApplicationMaster
