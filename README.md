@@ -15,6 +15,22 @@ In addition, the following classes are used:
 - SHA1Job: a job that is created by the ApplicationMaster and executed on one of the ExecutorMain instances. Each of these jobs reads a block of data from a file in HDFS, and calculates the SHA1 hash of this block.
 - SHA1Result: a result object that is returned by each SHA1Job to the ApplicationMaster.
 
+To compile this example, clone it from github: 
+
+	git clone git@github.com:jmaassen/ConstellationOnYarn.git
+
+Ensure hadoop is installed on the machine you are using and _$HADOOP_HOME_ is set: 
+
+	echo $HADOOP_HOME
+
+This should return a value such as '/cm/shared/package/hadoop/hadoop-2.5.0'
+
+
+
+
+
+Ensure the _ Next change to the _ConstellationOnYarn_ directory.  a ensure 
+
 
 
 

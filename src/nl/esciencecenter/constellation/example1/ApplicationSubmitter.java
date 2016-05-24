@@ -50,16 +50,17 @@ public class ApplicationSubmitter {
         System.out.println("Connected to YARN");
         //System.out.println(" - Config: " + yarnClient.getConfig());
         System.out.println(" - Queues: " + yarnClient.getAllQueues());
-        //System.out.println(" - Applications: " + yarnClient.getApplications());
-        System.out.println(" - Labels: " + yarnClient.getClusterNodeLabels());
+        // System.out.println(" - Applications: " + yarnClient.getApplications());
+        // System.out.println(" - Labels: " + yarnClient.getClusterNodeLabels());
         
         System.out.println(" - Nodes: " + yarnClient.getNodeReports());
         
         System.out.println(" - Logging to: " + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
         
-        Set<String> labels = yarnClient.getClusterNodeLabels();
-        
-        System.out.println(" - Labels: " + labels);
+        // Not supported on hadoop 2.5.0 ? 
+        // Set<String> labels = yarnClient.getClusterNodeLabels();
+        //
+        // System.out.println(" - Labels: " + labels);
         
         List<NodeReport> nodes = yarnClient.getNodeReports();
         
