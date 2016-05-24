@@ -154,17 +154,21 @@ public class ApplicationSubmitter {
         // In this scenario, the jar file for the application master is part of the local resources                 
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-        File packageFile = new File(appJar);
-
-        System.out.println("Adding " + appJar + " to local resource " + packageFile.length() + " " + " " + packageFile.lastModified());
-        
         FileSystem fs = FileSystem.get(conf);
-        fs.copyFromLocalFile(false, true, new Path(appJar), new Path(appJar));
-        FileStatus s = fs.getFileStatus(new Path(appJar));
         
-        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(new Path(appJar)));
-        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, s.getLen(), s.getModificationTime());        
-        localResources.put(appJar, r);
+        addLocalJar(fs, appJar, localResources);
+        
+        System.out.println("Adding " + libPath + " to local resources");
+        
+        File libdir = new File(libPath);
+
+        File [] libs = libdir.listFiles();
+
+        for (File l : libs) { 
+            if (l.isFile()) { 
+                addLocalJar(fs, libdir + "/" + l.getName(), localResources);                      
+            }
+        }
         
         //addToLocalResources(fs, appJar, appJar, id.toString(), localResources, null);
 
@@ -188,10 +192,6 @@ public class ApplicationSubmitter {
 
         classPathEnv.append(':');
         classPathEnv.append(appJar);
-
-        File libdir = new File(libPath);
-
-        File [] libs = libdir.listFiles();
 
         for (File l : libs) { 
             if (l.isFile()) { 
@@ -243,6 +243,23 @@ public class ApplicationSubmitter {
 
         System.out.println("Application " + appId + " finished with" + " state " + appState + " at " + appReport.getFinishTime());
     }
+    
+    private void addLocalJar(FileSystem fs, String file, Map<String, LocalResource> localResources) { 
+     
+        File packageFile = new File(file);
+
+        Path p = new Path(file);
+        
+        System.out.println("Adding " + file + " to local resources");
+        
+        fs.copyFromLocalFile(false, true, p, p);
+        FileStatus s = fs.getFileStatus(p);
+        
+        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(p));
+        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, s.getLen(), s.getModificationTime());        
+        localResources.put(file, r);
+    }    
+    
 /*
     private void addToLocalResources(FileSystem fs, String fileSrcPath, String fileDstPath, String appId, Map<String, LocalResource> localResources, String resources) throws IOException {
 
