@@ -8,12 +8,16 @@ import java.util.List;
 import java.util.Map;
 //import java.util.Set;
 
+
+
+
 import org.apache.commons.io.IOUtils;
 
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -36,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.QueueACL;
 import org.apache.hadoop.yarn.api.records.QueueInfo;
 import org.apache.hadoop.yarn.api.records.QueueUserACLInfo;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -98,7 +103,11 @@ public class ApplicationSubmitter {
 
         YarnClientApplication app = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
-
+        
+        
+        
+        
+        
         ApplicationId id = appResponse.getApplicationId();
 
         System.out.println("Connected to YARN with application ID: " + id);
@@ -145,9 +154,14 @@ public class ApplicationSubmitter {
         // In this scenario, the jar file for the application master is part of the local resources                 
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-        FileSystem fs = FileSystem.get(conf);
-
-        addToLocalResources(fs, appJar, appJar, id.toString(), localResources, null);
+        File packageFile = new File(appJar);
+        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(new Path(appJar)));
+        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, packageFile.length(), packageFile.lastModified());
+        
+        localResources.put(appJar, r);
+        
+        //FileSystem fs = FileSystem.get(conf);
+        //addToLocalResources(fs, appJar, appJar, id.toString(), localResources, null);
 
         // Setup CLASSPATH for ApplicationMaster
         Map<String, String> appMasterEnv = new HashMap<String, String>();
@@ -224,7 +238,7 @@ public class ApplicationSubmitter {
 
         System.out.println("Application " + appId + " finished with" + " state " + appState + " at " + appReport.getFinishTime());
     }
-
+/*
     private void addToLocalResources(FileSystem fs, String fileSrcPath, String fileDstPath, String appId, Map<String, LocalResource> localResources, String resources) throws IOException {
 
 //        String suffix = "ConstellationOnYarn" + "/" + appId + "/" + fileDstPath;
@@ -250,7 +264,8 @@ public class ApplicationSubmitter {
         
         localResources.put(fileDstPath, scRsrc);
     }
-
+*/
+    
     public static void main(String[] args) throws Exception {
         ApplicationSubmitter c = new ApplicationSubmitter();
         c.run(args);
