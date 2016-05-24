@@ -8,6 +8,12 @@ import java.util.Map;
 //import java.util.Set;
 
 
+
+
+
+
+
+
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -19,10 +25,16 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeReport;
+import org.apache.hadoop.yarn.api.records.NodeState;
 //import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.QueueACL;
+import org.apache.hadoop.yarn.api.records.QueueInfo;
+import org.apache.hadoop.yarn.api.records.QueueUserACLInfo;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.api.records.YarnClusterMetrics;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -48,6 +60,38 @@ public class ApplicationSubmitter {
         yarnClient.init(conf);
         yarnClient.start();
 
+        YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
+        System.out.println("Got Cluster metric info from ASM, numNodeManagers=" + clusterMetrics.getNumNodeManagers());
+
+        List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(NodeState.RUNNING);
+        
+        System.out.println("Got Cluster node info from ASM");
+        
+        for (NodeReport node : clusterNodeReports) {
+          System.out.println("Got node report from ASM for"
+              + ", nodeId=" + node.getNodeId()
+              + ", nodeAddress" + node.getHttpAddress()
+              + ", nodeRackName" + node.getRackName()
+              + ", nodeNumContainers" + node.getNumContainers());
+        }
+
+        QueueInfo queueInfo = yarnClient.getQueueInfo("default");
+        System.out.println("Queue info"
+            + ", queueName=" + queueInfo.getQueueName()
+            + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
+            + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
+            + ", queueApplicationCount=" + queueInfo.getApplications().size()
+            + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
+
+        List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
+        for (QueueUserACLInfo aclInfo : listAclInfo) {
+          for (QueueACL userAcl : aclInfo.getUserAcls()) {
+            System.out.println("User ACL Info for Queue"
+                + ", queueName=" + aclInfo.getQueueName()
+                + ", userAcl=" + userAcl.name());
+          }
+        }
+        
         YarnClientApplication app = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
 
