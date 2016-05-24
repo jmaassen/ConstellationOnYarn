@@ -244,7 +244,7 @@ public class ApplicationSubmitter {
         System.out.println("Application " + appId + " finished with" + " state " + appState + " at " + appReport.getFinishTime());
     }
     
-    private void addLocalJar(FileSystem fs, String file, Map<String, LocalResource> localResources) { 
+    private void addLocalJar(FileSystem fs, String file, Map<String, LocalResource> localResources) throws IOException { 
      
         File packageFile = new File(file);
 
