@@ -269,6 +269,8 @@ public class ApplicationMaster {
 
             appMasterEnv.put("CLASSPATH", classPathEnv.toString());
 
+            System.out.println("CLASSPATH = " + classPathEnv.toString());
+            
             // Start an Ibis server here, to serve the pool of constellations.
             TypedProperties properties = new TypedProperties();
             properties.putAll(System.getProperties());
