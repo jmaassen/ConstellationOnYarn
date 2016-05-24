@@ -81,7 +81,7 @@ public class ApplicationMaster {
         Path testfile = new Path(fs.getHomeDirectory(), inputFile); 
 
         if (!fs.exists(testfile)) { 
-            throw new Exception("Could not find input file!");
+            throw new Exception("Could not find input file " + inputFile + " " + testfile);
         }
 
         FileStatus stat = fs.getFileStatus(testfile);
