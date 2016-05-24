@@ -39,8 +39,7 @@ public class ApplicationSubmitter {
         String appJar = args[2];
         String libPath = args[3];
         int n = Integer.parseInt(args[4]);    
-        String logfile = args[5];       
-
+        
         // Create yarnClient
         YarnConfiguration conf = new YarnConfiguration();
         YarnClient yarnClient = YarnClient.createYarnClient();
@@ -82,7 +81,6 @@ public class ApplicationSubmitter {
                         " " + appJar + 
                         " " + libPath + 
                         " " + String.valueOf(n) +
-                        " " + logfile +
                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.stdout" + 
                         " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.stderr" 
                 );

@@ -32,7 +32,6 @@ import ibis.ipl.server.Server;
 import ibis.util.TypedProperties;
 
 import java.io.File;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -196,12 +195,7 @@ public class ApplicationMaster {
         String appJar = args[1];
         String libPath = args[2];
         int n = Integer.parseInt(args[3]);    
-        String logfile = args[4];       
-
-        // We create a log file here in a user specified location. Simply printing will produce logs the hadoop directory tree.       
-        File f = new File(logfile);
-        f.createNewFile();
-
+        
         try { 
             System.out.println("ApplicationMaster started " + Arrays.toString(args));
 
