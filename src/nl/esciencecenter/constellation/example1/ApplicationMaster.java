@@ -70,7 +70,7 @@ public class ApplicationMaster {
     private static long end;
 
     // Bit of a hack to get logging output in a location we want
-    private static PrintWriter log;
+    // private static PrintWriter log;
 
     private static final void submitJobs(String inputFile) throws Exception { 
 
@@ -87,52 +87,75 @@ public class ApplicationMaster {
 
         FileStatus stat = fs.getFileStatus(testfile);
 
-        log.println("Found input file " + testfile.getName() + " with length " + stat.getLen() + " blocksize " + 
+        System.out.println("Found input file " + testfile.getName() + " with length " + stat.getLen() + " blocksize " + 
                 stat.getBlockSize() + " replication " + stat.getReplication());
 
         BlockLocation [] locs = fs.getFileBlockLocations(testfile, 0, stat.getLen());
 
         // Sumbit collector job here to collect replies
-        log.println("Submitting event collector");
+        System.out.println("Submitting event collector");
 
         sec = new MultiEventCollector(new UnitActivityContext("master"), locs.length);
         secid = cn.submit(sec);
 
         // Generate a Job for each block
-        log.println("Block locations: ");
+        System.out.println("Block locations: ");
 
-        int index = 0;
+        for (int i=0;i<locs.length;i++) {
+            BlockLocation b = locs[i];
+            
+            System.out.println("Block " + b.getOffset() + " - " + (b.getOffset() + b.getLength()));
+            System.out.println("Block locations: " + Arrays.toString(b.getHosts()));
+            System.out.println("Cached locations: " + Arrays.toString(b.getCachedHosts()));
+            System.out.println("Names: " + Arrays.toString(b.getNames()));
+            System.out.println("Topo paths: " + Arrays.toString(b.getTopologyPaths()));
 
-        for (BlockLocation b : locs) { 
-            log.println("Block " + b.getOffset() + " - " + (b.getOffset() + b.getLength()));
-            log.println("Block locations: " + Arrays.toString(b.getHosts()));
-            log.println("Cached locations: " + Arrays.toString(b.getCachedHosts()));
-            log.println("Names: " + Arrays.toString(b.getNames()));
-            log.println("Topo paths: " + Arrays.toString(b.getTopologyPaths()));
+            System.out.println("Submitting TestJob " + i);
 
-            log.println("Submitting TestJob " + index);
-
-            cn.submit(new SHA1Job(secid, new UnitActivityContext("test"), inputFile, index, b.getOffset(), b.getLength()));
+            cn.submit(new SHA1Job(secid, new UnitActivityContext("test"), inputFile, i, b.getOffset(), b.getLength()));
         }
-
     }
 
+    private static final String SHA1toString(byte [] sha1) { 
+        
+        StringBuffer sb = new StringBuffer();
+
+        for (int i = 0; i < sha1.length; i++) {
+            sb.append(Integer.toString((sha1[i] & 0xff) + 0x100, 16).substring(1));
+        }
+         
+        return sb.toString();        
+    }
+    
     private static final void waitForJobs() throws Exception { 
 
         Event [] events = sec.waitForEvents();
 
-        log.println("Result : " + Arrays.toString(events));
+        System.out.println("Result : " + Arrays.toString(events));
 
         cn.done();
 
         end = System.currentTimeMillis();
 
-        log.println("Constellation test run took: " + (end-start) + " ms.");
+        System.out.println("Constellation test run took: " + (end-start) + " ms.");
+        
+        System.out.println("Results: ");
+        
+        for (Event e : events) { 
+            
+            SHA1Result result = (SHA1Result) e.data; 
+            
+            if (result.hasFailed()) { 
+                System.out.println("  " + result.getBlock() + " FAILED");
+            } else {             
+                System.out.println("  " + result.getBlock() + " " + SHA1toString(result.getSHA1()));
+            } 
+        }
     }
 
     private static final void startConstellation(String address) throws Exception { 
 
-        log.println("Starting Constellation");     
+        System.out.println("Starting Constellation");     
 
         start = System.currentTimeMillis();
 
@@ -156,7 +179,7 @@ public class ApplicationMaster {
 
         long init = System.currentTimeMillis();
 
-        log.println("Constellation test init took: " + (init-start) + " ms.");
+        System.out.println("Constellation test init took: " + (init-start) + " ms.");
     }
 
     public static void main(String[] args) throws Exception {
@@ -164,27 +187,23 @@ public class ApplicationMaster {
         // Copy input parameters here:
         // 
         // hdfs path to input file, relative to hdfs home of user
-        // executor main class
         // full path to application jar
         // full library path
         // container count
         // full path to local log file
 
         String inputFile = args[0];
-        String mainClass = args[1];
-        String appJar = args[2];
-        String libPath = args[3];
-        int n = Integer.parseInt(args[4]);    
-        String logfile = args[5];       
+        String appJar = args[1];
+        String libPath = args[2];
+        int n = Integer.parseInt(args[3]);    
+        String logfile = args[4];       
 
         // We create a log file here in a user specified location. Simply printing will produce logs the hadoop directory tree.       
         File f = new File(logfile);
         f.createNewFile();
 
-        log = new PrintWriter(f);
-
         try { 
-            log.println("ApplicationMaster started " + Arrays.toString(args));
+            System.out.println("ApplicationMaster started " + Arrays.toString(args));
 
             // Initialize clients to ResourceManager and NodeManagers
             Configuration conf = new YarnConfiguration();
@@ -198,13 +217,13 @@ public class ApplicationMaster {
             nmClient.start();
 
             // Register with ResourceManager
-            log.println("registerApplicationMaster 0");
+            System.out.println("registerApplicationMaster 0");
             rmClient.registerApplicationMaster("", 0, "");
-            log.println("registerApplicationMaster 1");
+            System.out.println("registerApplicationMaster 1");
 
             Resource res = rmClient.getAvailableResources();
 
-            log.println("Available resources: " + res);
+            System.out.println("Available resources: " + res);
 
             // Priority for worker containers - priorities are intra-application
             Priority priority = Records.newRecord(Priority.class);
@@ -220,7 +239,7 @@ public class ApplicationMaster {
                 ContainerRequest containerAsk = new ContainerRequest(capability, /*String [] nodes*/null, /*String [] racks*/null, 
                         priority);
 
-                log.println("Making res-req " + i);
+                System.out.println("Making res-req " + i);
                 rmClient.addContainerRequest(containerAsk);
             }
 
@@ -265,19 +284,19 @@ public class ApplicationMaster {
             Server server = new Server(properties);          
             String address = server.getAddress();
 
-            log.println("Started server at: " + address);
+            System.out.println("Started server at: " + address);
 
             // Start a Constellation here that only serves as a source of jobs and sink of results. 
 
-            log.println("Starting Constellation");
+            System.out.println("Starting Constellation");
 
             startConstellation(address);
 
-            log.println("Submitting Jobs");
+            System.out.println("Submitting Jobs");
 
             submitJobs(inputFile);
 
-            log.println("Launching containers");
+            System.out.println("Launching containers");
 
             // Obtain allocated containers, launch executors and check for responses
             int responseId = 0;
@@ -294,7 +313,7 @@ public class ApplicationMaster {
                     // Launch container by create ContainerLaunchContext
                     ContainerLaunchContext ctx = Records.newRecord(ContainerLaunchContext.class);
 
-                    log.println("Starting container on : " + container.getNodeId().getHost());
+                    System.out.println("Starting container on : " + container.getNodeId().getHost());
 
                     ctx.setCommands(
                             Collections.singletonList(
@@ -302,14 +321,14 @@ public class ApplicationMaster {
                                             " -Xmx256M" +
                                             " -Dibis.pool.name=test" + 
                                             " -Dibis.server.address=" + address +
-                                            " " + mainClass + 
+                                            " nl.esciencecenter.constellation.example1.ExecutorMain " + 
                                             " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
                                             " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr" 
                                     ));
 
                     ctx.setEnvironment(appMasterEnv);
 
-                    log.println("Launching container " + container.getId());
+                    System.out.println("Launching container " + container.getId());
 
                     launchedContainers++;
 
@@ -321,24 +340,24 @@ public class ApplicationMaster {
                 }            
             }
 
-            log.println("Waiting for Job result from " + resp.size() + " containers");
+            System.out.println("Waiting for Job result from " + resp.size() + " containers");
 
             waitForJobs();
 
-            log.println("Waiting for containers");
+            System.out.println("Waiting for containers");
 
             while (completedContainers < n) {
                 for (AllocateResponse response : resp) {
                     for (ContainerStatus status : response.getCompletedContainersStatuses()) {
                         ++completedContainers;
-                        log.println("Completed container " + status.getContainerId());
+                        System.out.println("Completed container " + status.getContainerId());
                     }
                 }
 
                 Thread.sleep(100);
             }
 
-            log.println("Cleanup");
+            System.out.println("Cleanup");
 
             // Un-register with ResourceManager
             rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, "We rule!!", "");
@@ -348,11 +367,8 @@ public class ApplicationMaster {
             server.end(-1);
 
         } catch (Exception e) {
-            log.println("Failed " + e);
-            e.printStackTrace(log);         
-        } finally { 
-            log.close();
+            System.out.println("Failed " + e);
+            e.printStackTrace();         
         }
-
     }
 }

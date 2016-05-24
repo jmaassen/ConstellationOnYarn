@@ -1,8 +1,10 @@
 <project name="YARNTEST" default="all" basedir=".">
 
-	<property name="jar" value="simpleapp.jar" />
+        <property environment="env"/>
 
-	<property name="hadoopdir" value="/data/jason/Hadoop/hadoop-2.7.0/share/hadoop" />
+	<property name="jar" value="example1.jar" />
+
+	<property name="hadoopdir" value="${env.HADOOP_HOME}/share/hadoop" />
 
 	<property name="srcdir" value="./src" />
 	<property name="builddir" value="./build" />

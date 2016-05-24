@@ -22,7 +22,6 @@ import ibis.constellation.Event;
 import ibis.constellation.SimpleActivity;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -80,7 +79,7 @@ public class SHA1Job extends SimpleActivity {
             long pos = offset;
             
             while (pos < offset+length) { 
-                int len = (int) Math.min(length - (offset-pos), BUFFERSIZE);
+                int len = (int) Math.min(length - (pos-offset), BUFFERSIZE);
                 in.readFully(buffer, 0, len);
                 m.update(buffer, 0, len);
                 pos += len;
