@@ -78,7 +78,7 @@ public class ApplicationMaster {
         FileSystem fs = FileSystem.get(conf);
 
         // Path testfile = new Path("wordcount/input/data.txt"); 
-        Path testfile = new Path(fs.getHomeDirectory(), inputFile); 
+        Path testfile = new Path(inputFile); 
 
      //   if (!fs.exists(testfile)) { 
          //   throw new Exception("Could not find input file " + inputFile + " " + testfile);
