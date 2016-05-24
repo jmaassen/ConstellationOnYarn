@@ -156,6 +156,8 @@ public class ApplicationSubmitter {
 
         File packageFile = new File(appJar);
 
+        System.out.println("Adding " + appJar + " to local resource " + packageFile.length() + " " + " " + packageFile.lastModified());
+        
         FileSystem fs = FileSystem.get(conf);
         fs.copyFromLocalFile(false, true, new Path(appJar), new Path(appJar));
         
