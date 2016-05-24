@@ -227,7 +227,7 @@ public class ApplicationSubmitter {
 
     private void addToLocalResources(FileSystem fs, String fileSrcPath, String fileDstPath, String appId, Map<String, LocalResource> localResources, String resources) throws IOException {
 
-        String suffix = "ConsellationOnYarn-example1" + "/" + appId + "/" + fileDstPath;
+        String suffix = "ConstellationOnYarn" + "/" + appId + "/" + fileDstPath;
         Path dst = new Path(fs.getHomeDirectory(), suffix);
         
         if (fileSrcPath == null) {
@@ -239,7 +239,7 @@ public class ApplicationSubmitter {
                 IOUtils.closeQuietly(ostream);
             }
         } else {
-            fs.copyFromLocalFile(new Path(fileSrcPath), dst);
+            fs.copyFromLocalFile(false, true, new Path(fileSrcPath), dst);
         }
         
         FileStatus scFileStatus = fs.getFileStatus(dst);
