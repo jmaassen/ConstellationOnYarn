@@ -160,9 +160,10 @@ public class ApplicationSubmitter {
         
         FileSystem fs = FileSystem.get(conf);
         fs.copyFromLocalFile(false, true, new Path(appJar), new Path(appJar));
+        FileStatus s = fs.getFileStatus(new Path(appJar));
         
         URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(new Path(appJar)));
-        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, packageFile.length(), packageFile.lastModified());        
+        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, s.getLen(), s.getModificationTime());        
         localResources.put(appJar, r);
         
         //addToLocalResources(fs, appJar, appJar, id.toString(), localResources, null);
