@@ -263,7 +263,7 @@ public class ApplicationMaster {
             for (File l : libs) { 
                 if (l.isFile()) { 
                     classPathEnv.append(':');
-                    classPathEnv.append(l.getCanonicalPath());
+                    classPathEnv.append(libPath + "/" + l.getName());
                 }
             }
 
