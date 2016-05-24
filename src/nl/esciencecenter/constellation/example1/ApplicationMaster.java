@@ -112,7 +112,7 @@ public class ApplicationMaster {
 
             log.println("Submitting TestJob " + index);
 
-            cn.submit(new TestJob(secid, new UnitActivityContext("test"), inputFile, index));
+            cn.submit(new SHA1Job(secid, new UnitActivityContext("test"), inputFile, index, b.getOffset(), b.getLength()));
         }
 
     }
