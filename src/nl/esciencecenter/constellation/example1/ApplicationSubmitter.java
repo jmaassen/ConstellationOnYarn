@@ -239,7 +239,7 @@ public class ApplicationSubmitter {
                 IOUtils.closeQuietly(ostream);
             }
         } else {
-            fs.copyFromLocalFile(false, true, new Path(fileSrcPath), dst);
+            fs.copyFromLocalFile(false, true, new Path(fileSrcPath), new Path(suffix));
         }
         
         FileStatus scFileStatus = fs.getFileStatus(dst);
