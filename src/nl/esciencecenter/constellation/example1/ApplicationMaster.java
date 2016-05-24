@@ -130,14 +130,6 @@ public class ApplicationMaster {
 
         Event [] events = sec.waitForEvents();
 
-        System.out.println("Result : " + Arrays.toString(events));
-
-        cn.done();
-
-        end = System.currentTimeMillis();
-
-        System.out.println("Constellation test run took: " + (end-start) + " ms.");
-        
         System.out.println("Results: ");
         
         for (Event e : events) { 
@@ -150,6 +142,12 @@ public class ApplicationMaster {
                 System.out.println("  " + result.getBlock() + " " + SHA1toString(result.getSHA1()));
             } 
         }
+        
+        cn.done();
+
+        end = System.currentTimeMillis();
+
+        System.out.println("Constellation test run took: " + (end-start) + " ms.");
     }
 
     private static final void startConstellation(String address) throws Exception { 

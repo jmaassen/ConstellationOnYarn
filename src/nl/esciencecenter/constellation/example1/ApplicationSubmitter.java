@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -45,33 +47,39 @@ public class ApplicationSubmitter {
         YarnClient yarnClient = YarnClient.createYarnClient();
         yarnClient.init(conf);
         yarnClient.start();
+
+        // Create application via yarnClient
+        YarnClientApplication app = yarnClient.createApplication();
+        GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+
+        ApplicationId id = appResponse.getApplicationId();
         
-        System.out.println("Connected to YARN");
-        //System.out.println(" - Config: " + yarnClient.getConfig());
-        System.out.println(" - Queues: " + yarnClient.getAllQueues());
+        System.out.println("Connected to YARN with application ID: " + id);
+        
+        // Not all of this works on older hadoop installations (like on DAS4)
+        
+        // System.out.println(" - Config: " + yarnClient.getConfig());
+        // System.out.println(" - Queues: " + yarnClient.getAllQueues());
         // System.out.println(" - Applications: " + yarnClient.getApplications());
         // System.out.println(" - Labels: " + yarnClient.getClusterNodeLabels());
         
-        System.out.println(" - Nodes: " + yarnClient.getNodeReports());
+        // System.out.println(" - Nodes: " + yarnClient.getNodeReports());
         
-        System.out.println(" - Logging to: " + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        // System.out.println(" - Logging to: " + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
         
         // Not supported on hadoop 2.5.0 ? 
         // Set<String> labels = yarnClient.getClusterNodeLabels();
         //
         // System.out.println(" - Labels: " + labels);
         
-        List<NodeReport> nodes = yarnClient.getNodeReports();
+        // List<NodeReport> nodes = yarnClient.getNodeReports();
         
-        for (NodeReport node : nodes) { 
-            System.out.println(" - Node: " + node.getRackName() + "/" + node.getNodeId().getHost() + ":" + node.getNodeId().getPort());
-        }
-        
-        // Create application via yarnClient
-        YarnClientApplication app = yarnClient.createApplication();
+        // for (NodeReport node : nodes) { 
+        //    System.out.println(" - Node: " + node.getRackName() + "/" + node.getNodeId().getHost() + ":" + node.getNodeId().getPort());
+        // }
 
         // Set up the container launch context for the application master
-        //ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
+        // ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
         
         List<String> cmd = Collections.singletonList(
                 Environment.JAVA_HOME.$$() + "/bin/java" +

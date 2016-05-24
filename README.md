@@ -29,12 +29,12 @@ This should return a value such as '/cm/shared/package/hadoop/hadoop-2.5.0'. Nex
 
 To start the application the _ApplicationSubmitter_ must be started. This will run on the local machine and contact the YARN scheduler to submit the _ApplicationMaster_: 
 
-	java -cp $HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/common/lib/*:./dist/example1.jar \\
-                nl.esciencecenter.constellation.example1.ApplicationSubmitter \\ 
-                wordcount/input/data.txt \\
-                nl.esciencecenter.constellation.example1.ApplicationMaster \\ 
-                $PWD/dist/example1.jar \\
-                $PWD/lib \\
+	java -cp $HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/common/lib/*:./dist/example1.jar \
+                nl.esciencecenter.constellation.example1.ApplicationSubmitter \
+                wordcount/input/data.txt \
+                nl.esciencecenter.constellation.example1.ApplicationMaster \
+                $PWD/dist/example1.jar \
+                $PWD/lib \
                 1
 
 
