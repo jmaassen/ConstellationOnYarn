@@ -2,11 +2,13 @@ package nl.esciencecenter.constellation.example1;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 //import java.util.Set;
+
 
 
 
@@ -57,6 +59,8 @@ public class ApplicationSubmitter {
 
     public void run(String[] args) throws Exception {
 
+        System.out.println("APPLICATION SUBMITTER " + Arrays.toString(args));
+        
         String inputFile = args[0];
         String mainClass = args[1];
         String appJar = args[2];
