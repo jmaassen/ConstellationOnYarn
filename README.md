@@ -39,6 +39,17 @@ To start the application the _ApplicationSubmitter_ must be started. This will r
 
 
 
+git pull ; ant clean ; ant
+
+export CLASSPATH=$CLASSPATH:`/cm/shared/package/hadoop/hadoop-2.5.0/bin/yarn classpath`
+java nl.esciencecenter.constellation.example1.ApplicationSubmitter /user/jason/hansken/images/00000000-0000-0000-0000-000000000001 nl.esciencecenter.constellation.example1.ApplicationMaster ./dist/example1.jar ./lib 1
+
+/cm/shared/package/hadoop/hadoop-2.5.0/bin/yarn logs -applicationId application_1448873059693_0292 | less
+/cm/shared/package/hadoop/hadoop-2.5.0/bin/yarn application -kill application_1448873059693_0291
+
+
+
+
 
 
 
