@@ -57,6 +57,7 @@ public class ApplicationSubmitter {
 
     Configuration conf = new YarnConfiguration();
 
+    
     public void run(String[] args) throws Exception {
 
         System.out.println("APPLICATION SUBMITTER " + Arrays.toString(args));
@@ -66,7 +67,7 @@ public class ApplicationSubmitter {
         String appJar = args[2];
         String libPath = args[3];
         int n = Integer.parseInt(args[4]);    
-
+                
         // Create yarnClient
         YarnClient yarnClient = YarnClient.createYarnClient();
         YarnConfiguration conf = new YarnConfiguration();

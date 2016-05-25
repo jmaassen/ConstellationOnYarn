@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -355,21 +356,22 @@ public class ApplicationMaster {
 
                     System.out.println("Starting container on : " + container.getNodeId().getHost());
 
-                    ctx.setCommands(
-                            Collections.singletonList(
-                                    Environment.JAVA_HOME.$$() + "/bin/java" +
-                                            " -Xmx256M" +
-                                            " -Dibis.pool.name=test" + 
-                                            " -Dibis.server.address=" + address +
-                                            " nl.esciencecenter.constellation.example1.ExecutorMain " + 
-                                            " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
-                                            " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr" 
-                                    ));
-
+                    List commands = Collections.singletonList(Environment.JAVA_HOME.$$() + "/bin/java" +
+                                    " -Xmx256M" +
+                                    " -Dibis.pool.name=test" + 
+                                    " -Dibis.server.address=" + address +
+                                    " nl.esciencecenter.constellation.example1.ExecutorMain " + 
+                                    " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
+                                    " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr");
+                    
+                    
+                    System.out.println("CONTAINER STARTS " + commands);
+                    
+                    ctx.setCommands(commands);
                     ctx.setEnvironment(appMasterEnv);
                     ctx.setLocalResources(localResources);
                     
-                    System.out.println("Launching container " + container.getId());
+                    System.out.println("Launching container " + container.getId() + " " + ctx);
 
                     launchedContainers++;
 
