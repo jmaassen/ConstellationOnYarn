@@ -32,6 +32,7 @@ import ibis.ipl.server.Server;
 import ibis.util.TypedProperties;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -51,12 +53,17 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
 public class ApplicationMaster {
@@ -179,6 +186,20 @@ public class ApplicationMaster {
         System.out.println("Constellation test init took: " + (init-start) + " ms.");
     }
 
+    
+    private static void addLocalJar(FileSystem fs, String file, Map<String, LocalResource> localResources) throws IOException { 
+        
+        System.out.println("Adding " + file + " to local resources");
+        
+        Path p = new Path(file);
+        
+        FileStatus s = fs.getFileStatus(p);
+        
+        URL packageUrl = ConverterUtils.getYarnUrlFromPath(FileContext.getFileContext().makeQualified(p));
+        LocalResource r = LocalResource.newInstance(packageUrl, LocalResourceType.FILE, LocalResourceVisibility.APPLICATION, s.getLen(), s.getModificationTime());        
+        localResources.put(file, r);
+    }    
+    
     public static void main(String[] args) throws Exception {
 
         // Copy input parameters here:
@@ -226,6 +247,34 @@ public class ApplicationMaster {
             capability.setMemory(128);
             capability.setVirtualCores(1);
 
+            
+            
+            
+            // set local resources for the application master
+            // local files or archives as needed
+            // In this scenario, the jar file for the application master is part of the local resources                 
+            Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+
+            FileSystem fs = FileSystem.get(conf);
+            
+            addLocalJar(fs, appJar, localResources);
+            
+            System.out.println("Adding " + libPath + " to local resources");
+            
+            File libdir = new File(libPath);
+
+            File [] libs = libdir.listFiles();
+
+            for (File l : libs) { 
+                if (l.isFile()) { 
+                    addLocalJar(fs, libdir + "/" + l.getName(), localResources);                      
+                }
+            }
+            
+            
+            
+            
+            
             // Make container requests to ResourceManager
             for (int i = 0; i < n; ++i) {
                 ContainerRequest containerAsk = new ContainerRequest(capability, /*String [] nodes*/null, /*String [] racks*/null, 
@@ -257,9 +306,6 @@ public class ApplicationMaster {
             classPathEnv.append(appJar);
 
             // File libdir = new File("/home/jason/Workspace/ConstellationOnYarn/lib");
-            File libdir = new File(libPath);
-            File [] libs = libdir.listFiles();
-
             for (File l : libs) { 
                 if (l.isFile()) { 
                     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
@@ -321,7 +367,8 @@ public class ApplicationMaster {
                                     ));
 
                     ctx.setEnvironment(appMasterEnv);
-
+                    ctx.setLocalResources(localResources);
+                    
                     System.out.println("Launching container " + container.getId());
 
                     launchedContainers++;

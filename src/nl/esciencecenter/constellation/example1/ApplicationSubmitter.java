@@ -104,10 +104,6 @@ public class ApplicationSubmitter {
         YarnClientApplication app = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
         
-        
-        
-        
-        
         ApplicationId id = appResponse.getApplicationId();
 
         System.out.println("Connected to YARN with application ID: " + id);
