@@ -186,16 +186,16 @@ public class ApplicationSubmitter {
 
         // add the runtime classpath needed for tests to work
         if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-            classPathEnv.append(':');
+            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
             classPathEnv.append(System.getProperty("java.class.path"));
         }
 
-        classPathEnv.append(':');
+        classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
         classPathEnv.append(appJar);
 
         for (File l : libs) { 
             if (l.isFile()) { 
-                classPathEnv.append(':');
+                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
                 classPathEnv.append(libPath + "/" + l.getName());
             }
         }
