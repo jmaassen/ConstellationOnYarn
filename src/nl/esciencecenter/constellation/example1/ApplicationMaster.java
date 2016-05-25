@@ -254,23 +254,23 @@ public class ApplicationMaster {
             // set local resources for the application master
             // local files or archives as needed
             // In this scenario, the jar file for the application master is part of the local resources                 
-            Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+          //  Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-            FileSystem fs = FileSystem.get(conf);
+          //  FileSystem fs = FileSystem.get(conf);
             
-            addLocalJar(fs, appJar, localResources);
+          //  addLocalJar(fs, appJar, localResources);
             
-            System.out.println("Adding " + libPath + " to local resources");
+          //  System.out.println("Adding " + libPath + " to local resources");
             
-            File libdir = new File(libPath);
+          //  File libdir = new File(libPath);
 
-            File [] libs = libdir.listFiles();
+          //  File [] libs = libdir.listFiles();
 
-            for (File l : libs) { 
-                if (l.isFile()) { 
-                    addLocalJar(fs, libdir + "/" + l.getName(), localResources);                      
-                }
-            }
+           // for (File l : libs) { 
+            //    if (l.isFile()) { 
+             //       addLocalJar(fs, libdir + "/" + l.getName(), localResources);                      
+              //  }
+          //  }
             
             
             
@@ -306,6 +306,10 @@ public class ApplicationMaster {
             // classPathEnv.append("/home/jason/Workspace/ConstellationOnYarn/dist/simpleapp.jar");
             classPathEnv.append(appJar);
 
+            File libdir = new File(libPath);
+
+            File [] libs = libdir.listFiles();
+            
             // File libdir = new File("/home/jason/Workspace/ConstellationOnYarn/lib");
             for (File l : libs) { 
                 if (l.isFile()) { 
@@ -369,7 +373,7 @@ public class ApplicationMaster {
                     
                     ctx.setCommands(commands);
                     ctx.setEnvironment(appMasterEnv);
-                    ctx.setLocalResources(localResources);
+                //    ctx.setLocalResources(localResources);
                     
                     System.out.println("Launching container " + container.getId() + " " + ctx);
 
