@@ -23,7 +23,6 @@ import ibis.constellation.Event;
 import ibis.constellation.Executor;
 import ibis.constellation.MultiEventCollector;
 import ibis.constellation.SimpleExecutor;
-//import ibis.constellation.SingleEventCollector;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
 import ibis.constellation.context.UnitActivityContext;
@@ -31,7 +30,6 @@ import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
 import ibis.util.TypedProperties;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -119,7 +117,9 @@ public class ApplicationMaster {
 
             System.out.println("Submitting TestJob " + i);
 
-            cn.submit(new SHA1Job(secid, new UnitActivityContext("test"), inputFile, i, b.getOffset(), b.getLength()));
+            SHA1Job job = new SHA1Job(secid, new UnitActivityContext("test"), inputFile, i, b.getOffset(), b.getLength());
+            
+            cn.submit(job);
         }
     }
 
@@ -220,7 +220,7 @@ public class ApplicationMaster {
             System.out.println("ApplicationMaster started " + Arrays.toString(args));
 
             // Initialize clients to ResourceManager and NodeManagers
-            Configuration conf = new YarnConfiguration();
+            YarnConfiguration conf = new YarnConfiguration();
 
             AMRMClient<ContainerRequest> rmClient = AMRMClient.createAMRMClient();
             rmClient.init(conf);
@@ -287,40 +287,44 @@ public class ApplicationMaster {
 
             Map<String, String> appMasterEnv = new HashMap<String, String>();
 
-            StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$()).append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+//            StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$()).append(
+//                    ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+//
+//            for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH, 
+//                    YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
+//                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//                classPathEnv.append(c.trim());
+//            }
+//
+//            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./log4j.properties");
+//
+//            // Add the runtime classpath needed for tests to work
+//            if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+//                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//                classPathEnv.append(System.getProperty("java.class.path"));
+//            }
+//
+//            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//            // classPathEnv.append("/home/jason/Workspace/ConstellationOnYarn/dist/simpleapp.jar");
+//            classPathEnv.append(appJar);
+//
+//            File libdir = new File(libPath);
+//
+//            File [] libs = libdir.listFiles();
+//            
+//            // File libdir = new File("/home/jason/Workspace/ConstellationOnYarn/lib");
+//            for (File l : libs) { 
+//                if (l.isFile()) { 
+//                    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//                    classPathEnv.append(libPath + "/" + l.getName());
+//                }
+//            }
+//
+//            appMasterEnv.put("CLASSPATH", classPathEnv.toString());
 
-            for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH, YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
-                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-                classPathEnv.append(c.trim());
-            }
-
-            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./log4j.properties");
-
-            // Add the runtime classpath needed for tests to work
-            if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-                classPathEnv.append(System.getProperty("java.class.path"));
-            }
-
-            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-            // classPathEnv.append("/home/jason/Workspace/ConstellationOnYarn/dist/simpleapp.jar");
-            classPathEnv.append(appJar);
-
-            File libdir = new File(libPath);
-
-            File [] libs = libdir.listFiles();
+            appMasterEnv.put("CLASSPATH", LaunchUtils.createClassPath(conf, appJar, libPath));
             
-            // File libdir = new File("/home/jason/Workspace/ConstellationOnYarn/lib");
-            for (File l : libs) { 
-                if (l.isFile()) { 
-                    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-                    classPathEnv.append(libPath + "/" + l.getName());
-                }
-            }
-
-            appMasterEnv.put("CLASSPATH", classPathEnv.toString());
-
-            System.out.println("CLASSPATH = " + classPathEnv.toString());
+            System.out.println("CLASSPATH = " + appMasterEnv.toString());
             
             // Start an Ibis server here, to serve the pool of constellations.
             TypedProperties properties = new TypedProperties();

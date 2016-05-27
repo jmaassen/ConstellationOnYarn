@@ -9,21 +9,10 @@ import java.util.List;
 import java.util.Map;
 //import java.util.Set;
 
-
-
-
-
-import org.apache.commons.io.IOUtils;
-
-//import org.apache.commons.logging.Log;
-//import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
@@ -50,6 +39,10 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+// import org.apache.commons.io.IOUtils;
+//import org.apache.commons.logging.Log;
+//import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 
 public class ApplicationSubmitter {
 
@@ -176,33 +169,37 @@ public class ApplicationSubmitter {
         // Setup CLASSPATH for ApplicationMaster
         Map<String, String> appMasterEnv = new HashMap<String, String>();
 
-        StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$()).append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+//        StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$$()).append(
+//                ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
+//
+//        for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH, 
+//                YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {            
+//            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//            classPathEnv.append(c.trim());
+//        }
+//
+//        classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./log4j.properties");
+//
+//        // add the runtime classpath needed for tests to work
+//        if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
+//            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//            classPathEnv.append(System.getProperty("java.class.path"));
+//        }
+//
+//        classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//        classPathEnv.append(appJar);
+//
+//        for (File l : libs) { 
+//            if (l.isFile()) { 
+//                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+//                classPathEnv.append(libPath + "/" + l.getName());
+//            }
+//        }
+//
+//        appMasterEnv.put("CLASSPATH", classPathEnv.toString());
 
-        for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH, YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
-            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-            classPathEnv.append(c.trim());
-        }
-
-        classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./log4j.properties");
-
-        // add the runtime classpath needed for tests to work
-        if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-            classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-            classPathEnv.append(System.getProperty("java.class.path"));
-        }
-
-        classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-        classPathEnv.append(appJar);
-
-        for (File l : libs) { 
-            if (l.isFile()) { 
-                classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-                classPathEnv.append(libPath + "/" + l.getName());
-            }
-        }
-
-        appMasterEnv.put("CLASSPATH", classPathEnv.toString());
-
+        appMasterEnv.put("CLASSPATH", LaunchUtils.createClassPath(conf, appJar, libPath));
+        
         // Set up the container launch context for the application master
         ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
                 localResources, appMasterEnv, cmd, null, null, null);
@@ -247,7 +244,7 @@ public class ApplicationSubmitter {
     
     private void addLocalJar(FileSystem fs, String file, Map<String, LocalResource> localResources) throws IOException { 
      
-        File packageFile = new File(file);
+      //  File packageFile = new File(file);
 
         Path p = new Path(file);
         
