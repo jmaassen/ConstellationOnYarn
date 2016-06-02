@@ -248,19 +248,16 @@ public class ApplicationMaster {
             capability.setMemory(128);
             capability.setVirtualCores(1);
 
-            
-            
-            
-            // set local resources for the application master
+            // set local resources for the worker nodes
             // local files or archives as needed
             // In this scenario, the jar file for the application master is part of the local resources                 
-          //  Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+            Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-          //  FileSystem fs = FileSystem.get(conf);
+            FileSystem fs = FileSystem.get(conf);
             
-          //  addLocalJar(fs, appJar, localResources);
+            addLocalJar(fs, appJar, localResources);
             
-          //  System.out.println("Adding " + libPath + " to local resources");
+            System.out.println("Adding " + libPath + " to local resources");
             
           //  File libdir = new File(libPath);
 

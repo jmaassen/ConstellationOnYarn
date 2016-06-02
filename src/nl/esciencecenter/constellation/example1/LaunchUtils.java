@@ -17,10 +17,21 @@
 package nl.esciencecenter.constellation.example1;
 
 import java.io.File;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerExecutionException;
+import org.apache.hadoop.yarn.util.FSDownload;
 
 /**
  * @version 1.0
@@ -64,4 +75,31 @@ public class LaunchUtils {
      
         return classPathEnv.toString();
     }
+    /*
+    
+    public static void createLocalFiles(Configuration conf, String applicationID) { 
+               
+        LocalDirAllocator localDirAllocator = new LocalDirAllocator(conf.get("hadoop.tmp.dir"));
+        FileContext localFSFileContext = FileContext.getLocalFSFileContext();
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        
+        Path destPath = localDirAllocator.getLocalPathForWrite(".", conf);
+        
+        Map<LocalResource, Future<Path>> resourcesToPaths = Maps.newHashMap();
+        
+        for (LocalResource resource : localResources.values()) {
+          Callable<Path> download = new FSDownload(localFSFileContext, ugi, conf, 
+                  new Path(destPath, Long.toString(uniqueNumberGenerator.incrementAndGet())),
+                  resource);
+          
+          Path p = download.call();
+          // Future<Path> future = exec.submit(download);
+          resourcesToPaths.put(resource, future);
+        }
+
+        
+        
+        
+    }*/
+    
 }
