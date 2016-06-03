@@ -64,8 +64,8 @@ The example code can be found in 'src' and consists of the following packages:
     
 Like most YARN applications, running this application requires three parts: 
 
-- `nl.esciencecenter.ConstellationSubmitter`: the _main_ application that connects to the YARN scheduler and submits the ApplicationMaster 
-- `nl.esciencecenter.ApplicationMaster`: the _master_ application that runs on a YARN node, aquires the nodes to run one or more `nl.esciencecenter.constellation.ConstellationWorker` applications and starts them, starts a `nl.esciencecenter.constellation.ConstellationMaster`, and waits for everything to finish.
+- `nl.esciencecenter.ConstellationSubmitter`: the _main_ application that connects to the YARN scheduler and submits the `nl.esciencecenter.ApplicationMaster`
+- `nl.esciencecenter.ApplicationMaster`: the _master_ application that runs on a YARN node, aquires the nodes to run one or more `nl.esciencecenter.constellation.ConstellationWorker` applications and starts them, starts a `nl.esciencecenter.constellation.ConstellationMaster` itself, and waits for everything to finish.
 - `nl.esciencecenter.constellation.ConstellationWorker`: the _worker_ application that is started on the YARN nodes to processes one or more `nl.esciencecenter.constellation.SHA1Job`s.
 
 In addition, the following classes are used:
