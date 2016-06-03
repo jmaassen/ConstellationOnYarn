@@ -158,14 +158,16 @@ public class YarnMaster {
                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
                         " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr");
 
-                System.out.println("CONTAINER STARTS " + commands);
+                //System.out.println("CONTAINER STARTS " + commands);
 
                 ctx.setCommands(commands);
                 ctx.setEnvironment(appMasterEnv);
                 ctx.setLocalResources(localResources);
 
-                System.out.println("Launching container " + container.getId() + " " + ctx);
+                //System.out.println("Launching container " + container.getId() + " " + ctx);
 
+                System.out.println("Launching worker " + launchedContainers + "/" + containerCount + " " +  container.getId());
+                
                 launchedContainers++;
 
                 nmClient.startContainer(container, ctx);
