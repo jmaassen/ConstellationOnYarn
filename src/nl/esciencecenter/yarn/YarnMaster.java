@@ -1,0 +1,220 @@
+/**
+ * Copyright 2016 Netherlands eScience Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package nl.esciencecenter.yarn;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
+import org.apache.hadoop.yarn.client.api.NMClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Records;
+
+/**
+ * Simple YARN ApplicationMaster containing the plumbing to starts workers on YARN. 
+ */
+public class YarnMaster {
+
+    private String hdfsRoot; 
+    private String libPath; 
+    private int containerCount; 
+
+    private YarnConfiguration conf;
+    private FileSystem fs;
+
+    private Map<String, LocalResource> localResources;
+
+    private AMRMClient<ContainerRequest> rmClient;
+
+    public YarnMaster(String hdfsRoot, String libPath, int containerCount) throws IOException { 
+        this.hdfsRoot = hdfsRoot;
+        this.libPath = libPath;
+        this.containerCount = containerCount;
+
+        conf = new YarnConfiguration();
+        fs = FileSystem.get(conf);
+        localResources = new HashMap<String, LocalResource>();        
+    }
+
+    /**
+     * @return
+     */
+    public FileSystem getFileSystem() {
+        return fs;
+    }      
+
+    /**
+     * Stage in the dependencies in libPath to HDFS.
+     *  
+     * @throws IOException
+     */
+    public void stageIn() throws IOException {
+
+        System.out.println("ApplicationMaster: stage-in dependencies from " + libPath + " to " + hdfsRoot + File.separator + libPath);
+
+        // Add all file dependencies that the ApplicationSubmitter has put in HDFS for us to the LocalResources map. 
+        Utils.addHDFSDirToLocalResources(fs, hdfsRoot, libPath, localResources);
+    }
+
+    /**
+     * Submit the specified number of containers to YARN.
+     * 
+     * @param jvmOpts The options to provide to the JVM
+     * @param executor The application to start 
+     * @param executorOpts The options of the application 
+     * @throws YarnException
+     * @throws IOException
+     */
+    public void startWorkers(String jvmOpts, String executor, String executorOpts) throws YarnException, IOException { 
+
+        System.out.println("Starting workers");
+        
+        rmClient = AMRMClient.createAMRMClient();
+        rmClient.init(conf);
+        rmClient.start();
+
+        // Create a NodeManager client.
+        NMClient nmClient = NMClient.createNMClient();
+        nmClient.init(conf);
+        nmClient.start();
+
+        // Register with ResourceManager
+        rmClient.registerApplicationMaster("", 0, "");
+
+        // Priority for worker containers - priorities are intra-application
+        Priority priority = Records.newRecord(Priority.class);
+        priority.setPriority(0);
+
+        // Resource requirements for worker containers
+        Resource capability = Records.newRecord(Resource.class);
+        capability.setMemory(256);
+        capability.setVirtualCores(1);
+
+        // Make container requests to ResourceManager
+        for (int i = 0; i < containerCount; ++i) {
+            ContainerRequest containerAsk = new ContainerRequest(capability, /*String [] nodes*/null, /*String [] racks*/null, 
+                    priority);
+
+            System.out.println("Doing contanier request " + i);
+            rmClient.addContainerRequest(containerAsk);
+        }
+
+        // Setup CLASSPATH for the JVM that will run the ExecutorMain.
+        Map<String, String> appMasterEnv = new HashMap<String, String>();
+        appMasterEnv.put("CLASSPATH", Utils.createClassPath(conf, localResources));
+
+        // Obtain allocated containers, launch executors and check for responses
+        int responseId = 0;
+        int launchedContainers = 0;
+
+        LinkedList<AllocateResponse> resp = new LinkedList<>();
+
+        while (launchedContainers < containerCount) {
+            AllocateResponse response = rmClient.allocate(responseId++);
+
+            for (Container container : response.getAllocatedContainers()) {
+                // Launch container by create ContainerLaunchContext
+                ContainerLaunchContext ctx = Records.newRecord(ContainerLaunchContext.class);
+
+                System.out.println("Starting container on : " + container.getNodeId().getHost());
+
+                List<String> commands = Collections.singletonList(Environment.JAVA_HOME.$$() + "/bin/java" +
+                        " -Xmx256M" +
+                        " " + jvmOpts +  
+                        " " + executor + 
+                        " " + executorOpts + 
+                        " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
+                        " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr");
+
+                System.out.println("CONTAINER STARTS " + commands);
+
+                ctx.setCommands(commands);
+                ctx.setEnvironment(appMasterEnv);
+                ctx.setLocalResources(localResources);
+
+                System.out.println("Launching container " + container.getId() + " " + ctx);
+
+                launchedContainers++;
+
+                nmClient.startContainer(container, ctx);
+
+                resp.add(response);
+
+                try { 
+                    Thread.sleep(100);
+                } catch (InterruptedException e) { 
+                    // ignored
+                }
+            }            
+        }
+    }
+
+    /**
+     * Wait for all workers to finish. 
+     * 
+     * @throws YarnException
+     * @throws IOException
+     */
+    public void waitForWorkers() throws YarnException, IOException { 
+
+        System.out.println("Waiting for workers");
+
+        int completedContainers = 0;
+        
+        // Wait for the remaining containers to complete
+        while (completedContainers != containerCount) {
+            
+            AllocateResponse response = rmClient.allocate(completedContainers / containerCount);
+
+            for (ContainerStatus status : response.getCompletedContainersStatuses()) {
+                ++completedContainers;
+                // System.out.println("ContainerID:" + status.getContainerId() + ", state:" + status.getState().name());
+                System.out.println("Workers completed " + completedContainers + "/" + containerCount);
+            }
+            
+            try { 
+                Thread.sleep(1000);
+            } catch (InterruptedException e) { 
+                // ignored
+            }
+        }
+
+        System.out.println("Stopping YarnMaster");
+
+        // Un-register with ResourceManager
+        rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, "We rule!!", "");
+        rmClient.stop();
+    }
+}
