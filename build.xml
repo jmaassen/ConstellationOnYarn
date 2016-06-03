@@ -2,7 +2,7 @@
 
         <property environment="env"/>
 
-	<property name="jar" value="example1.jar" />
+	<property name="jar" value="ConstellationOnYarn.jar" />
 
 	<property name="hadoopdir" value="${env.HADOOP_HOME}/share/hadoop" />
 
@@ -49,7 +49,17 @@
 		</jar>
 	</target>
 
-	<target name="all" depends="clean,prepare,compile,jar">
+	<target name="install" depends="jar">
+                <copy file="log4j.properties" todir="${distdir}"/>
+
+		<copy todir="${distdir}">
+			<fileset dir="${libdir}">
+				<include name="*.jar" />
+	                </fileset>
+		</copy>
+	</target>
+
+	<target name="all" depends="clean,prepare,compile,jar,install">
 	</target>
 
 	<!-- remove all generated code -->
