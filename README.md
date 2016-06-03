@@ -13,7 +13,7 @@ To run this example you need a machine which has the following software installe
 - ant 1.7 or higher
 - Hadoop 2.5 or higher 
 
-Note that Hadoop must be set up properly, i.e., the HADOOP_HOME environment variable must be set up. In addition, make sure you 
+Note that Hadoop must be set up properly, i.e., the `$HADOOP_HOME` environment variable must be set up. In addition, make sure you 
 use the Java version that is used to run Hadoop to compile this example. Using a different version may result in unsupported version 
 exceptions.
 
@@ -24,7 +24,7 @@ After cloning this example, change to the directory and compile using:
 
    ant
 
-This compiles the example, and creates a './dist' directory containing a 'ConstellationOnYARN.jar' plus all dependencies.
+This compiles the example, and creates a `./dist` directory containing a `ConstellationOnYARN.jar` plus all dependencies.
 
 Running the example
 -------------------
@@ -32,7 +32,7 @@ Running the example
 To run the example you will first need to put an input file in HDFS. As usual with Hadoop, bigger is better. You can use an ubuntu source 
 image for example: 
 
-   wget http://ftp.acc.umu.se/mirror/cdimage.ubuntu.com/releases/xenial/release/source/ubuntu-16.04-src-1.iso
+	wget http://ftp.acc.umu.se/mirror/cdimage.ubuntu.com/releases/xenial/release/source/ubuntu-16.04-src-1.iso
 
 Next put this image into HDFS for example (after replacing /home/jason with your home directory in HDFS): 
 
