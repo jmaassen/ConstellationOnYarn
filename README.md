@@ -38,11 +38,11 @@ Next put this image into HDFS for example (after replacing `/user/jason` with yo
 
 	hdfs dfs -copyFromLocal ubuntu-16.04-src-1.iso /user/jason
   
-Next run the example using (after replacing `/user/jason` with your home directory in HDFS __twice__): 
+Next run the example using (after replacing `/user/jason` with your home directory in HDFS __twice__):
 
-	java -cp ./dist/ConstellationOnYarn.jar:`yarn classpath` nl.esciencecenter.ConstellationOnYarn /user/jason/ ./dist /user/jason/ubuntu-16.04-src-1.iso
+	java -cp ./dist/ConstellationOnYarn.jar:`yarn classpath` nl.esciencecenter.ConstellationSubmitter /user/jason/ ./dist /user/jason/ubuntu-16.04-src-1.iso
 
-This starts the `nl.esciencecenter.ConstellationOnYarn` example _locally_, which connects to the YARN scheduler and submits the example. This class 
+This starts the `nl.esciencecenter.ConstellationSubmitter` example _locally_, which connects to the YARN scheduler and submits the example. This class 
 expects the following command-line parameters:
 
 - The HDFS root directory to which the dependencies should be staged-in, `/user/jason` in this example.
