@@ -37,7 +37,7 @@ public class ConstellationSubmitter {
      * - The HDFS root directory (for example: /user/jason) 
      * - The local directory containing the dependencies (for example: ./dist)
      * - The input file on HDFS to process, assumed to be already present.
-     * - The number of workers to use to process the input file.
+     * - The number of workers to use to process the input file (default is 1).
      * 
      * @param args
      */
@@ -46,7 +46,7 @@ public class ConstellationSubmitter {
         String hdfsRoot = args[0];
         String libPath = args[1];
         String inputFile = args[2];
-        int workerCount = Integer.parseInt(args[3]);
+        int workerCount = args.length > 3 ? Integer.parseInt(args[3]) : 1;
         
         try { 
             YarnSubmitter ys = new YarnSubmitter(hdfsRoot, libPath);
