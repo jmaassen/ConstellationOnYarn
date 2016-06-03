@@ -2,7 +2,7 @@
 
 This repo contains some experimental code for putting the Consellation runtime system on YARN/HDFS
 
-The _nl.esciencecenter contains a simple example application that reads an input file and computes a hash of each block.
+The `nl.esciencecenter` package contains a simple example application that reads an input file and computes a hash of each block.
 
 Prerequisites
 -------------
