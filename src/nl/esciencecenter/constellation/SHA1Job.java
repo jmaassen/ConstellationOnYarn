@@ -16,17 +16,18 @@
 
 package nl.esciencecenter.constellation;
 
-import ibis.constellation.ActivityContext;
-import ibis.constellation.ActivityIdentifier;
-import ibis.constellation.Event;
-import ibis.constellation.SimpleActivity;
-
+import java.io.IOException;
 import java.security.MessageDigest;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import ibis.constellation.ActivityContext;
+import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.Event;
+import ibis.constellation.SimpleActivity;
 
 /**
  * Simple test job that computes a SHA1 hash of a single block in an input file.
@@ -35,73 +36,86 @@ public class SHA1Job extends SimpleActivity {
 
     private static final long serialVersionUID = -5546760613223653596L;
 
-    private final static int BUFFERSIZE = 64*1024;
-    
+    private final static int BUFFERSIZE = 64 * 1024;
+
     private final String file;
     private final int blockIndex;
     private final long offset;
     private final long length;
-    
-    public SHA1Job(ActivityIdentifier parent, ActivityContext context, String file, int blockIndex, long offset, long length) {
+
+    public SHA1Job(ActivityIdentifier parent, ActivityContext context,
+            String file, int blockIndex, long offset, long length) {
         super(parent, context);
         this.file = file;
         this.blockIndex = blockIndex;
-        this.offset = offset; 
+        this.offset = offset;
         this.length = length;
     }
 
     @Override
-    public void simpleActivity() throws Exception {
-        
-        System.out.println("Running SHA1Job " + file + " " + blockIndex + " " + offset + " " + length);
-                
-        // Create a buffer for the input data
-        byte [] buffer = new byte[BUFFERSIZE];
-        
-        long start = System.currentTimeMillis();
-        
-        // Open the input file. 
-        FileSystem fs = FileSystem.newInstance(new Configuration());
-        Path inputfile = new Path(file); 
+    public void simpleActivity() {
 
-        // Create the SHA1 digest
-        MessageDigest m = MessageDigest.getInstance("SHA1");
-        
-        try { 
-            if (!fs.exists(inputfile)) { 
+        System.out.println("Running SHA1Job " + file + " " + blockIndex + " "
+                + offset + " " + length);
+
+        // Create a buffer for the input data
+        byte[] buffer = new byte[BUFFERSIZE];
+
+        long start = System.currentTimeMillis();
+
+        FileSystem fs = null;
+
+        try {
+            // Open the input file.
+            fs = FileSystem.newInstance(new Configuration());
+            Path inputfile = new Path(file);
+
+            // Create the SHA1 digest
+            MessageDigest m = MessageDigest.getInstance("SHA1");
+
+            if (!fs.exists(inputfile)) {
                 throw new Exception("Could not find input file!");
             }
-        
+
             FSDataInputStream in = fs.open(inputfile);
             in.seek(offset);
-            
-            // Read the file and compute the SHA1 of this block 
+
+            // Read the file and compute the SHA1 of this block
             long pos = offset;
-            
-            while (pos < offset+length) { 
-                int len = (int) Math.min(length - (pos-offset), BUFFERSIZE);
+
+            while (pos < offset + length) {
+                int len = (int) Math.min(length - (pos - offset), BUFFERSIZE);
                 in.readFully(buffer, 0, len);
                 m.update(buffer, 0, len);
                 pos += len;
             }
 
-            byte [] digest = m.digest();
-            
+            byte[] digest = m.digest();
+
             long end = System.currentTimeMillis();
 
-            System.out.println("SHA1Job " + file + " " + blockIndex + " " + offset + " " + length + " successful and took " 
-                    + (end-start) + " ms");
+            System.out.println("SHA1Job " + file + " " + blockIndex + " "
+                    + offset + " " + length + " successful and took "
+                    + (end - start) + " ms");
 
-            getExecutor().send(new Event(identifier(), getParent(), new SHA1Result(file, blockIndex, digest)));
+            getExecutor().send(new Event(identifier(), getParent(),
+                    new SHA1Result(file, blockIndex, digest)));
 
-        } catch (Exception e) { 
-            
-            System.out.println("SHA1Job " + file + " " + blockIndex + " " + offset + " " + length + " failed " + e);
+        } catch (Exception e) {
+
+            System.out.println("SHA1Job " + file + " " + blockIndex + " "
+                    + offset + " " + length + " failed " + e);
             e.printStackTrace(System.out);
-                        
-            getExecutor().send(new Event(identifier(), getParent(), new SHA1Result(file, blockIndex, e)));
-        } 
-        
-        fs.close();        
+
+            getExecutor().send(new Event(identifier(), getParent(),
+                    new SHA1Result(file, blockIndex, e)));
+        } finally {
+            try {
+                fs.close();
+            } catch (IOException e) {
+                // ignore?
+            }
+        }
+
     }
 }
