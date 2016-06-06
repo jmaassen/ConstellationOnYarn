@@ -16,6 +16,16 @@
 
 package nl.esciencecenter.constellation;
 
+import java.util.Arrays;
+import java.util.Properties;
+
+import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationFactory;
@@ -30,60 +40,57 @@ import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
 import ibis.util.TypedProperties;
 
-import java.util.Arrays;
-import java.util.Properties;
-
-import org.apache.hadoop.fs.BlockLocation;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-
 /**
- * Master application for this example. 
- * 
- * Initializes a IPLServer and creates a local Constellation. 
- * Next divides the input file into blocks and submits a SHA1Job for each block. 
- * Then waits for the results to come in.
+ * Master application for this example.
+ *
+ * Initializes a IPLServer and creates a local Constellation. Next divides the
+ * input file into blocks and submits a SHA1Job for each block. Then waits for
+ * the results to come in.
  */
 public class ConstellationMaster {
+
+    public static final Logger logger = LoggerFactory
+            .getLogger(ConstellationMaster.class);
 
     private Server server;
 
     private Constellation cn;
     private MultiEventCollector sec;
     private ActivityIdentifier secid;
-    
+
     private long start;
     private long end;
 
     private FileSystem fs;
-    
+
     private String address;
-    
-    public ConstellationMaster(FileSystem fs) { 
+
+    public ConstellationMaster(FileSystem fs) {
         this.fs = fs;
     }
 
-    // Start a local Constellation using a single executor only used to gather the results.
-    private final void startConstellation(String address) throws Exception { 
+    // Start a local Constellation using a single executor only used to gather
+    // the results.
+    private final void startConstellation(String address) throws Exception {
 
-        System.out.println("Starting Constellation");     
+        logger.info("Starting Constellation");
 
         start = System.currentTimeMillis();
 
         int exec = 1;
 
-        Executor [] e = new Executor[exec];
+        Executor[] e = new Executor[exec];
 
         StealStrategy st = StealStrategy.ANY;
 
-        for (int i=0;i<exec;i++) { 
-            e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD, new UnitExecutorContext("master"), st, st, st);
+        for (int i = 0; i < exec; i++) {
+            e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
+                    new UnitExecutorContext("master"), st, st, st);
         }
 
         Properties p = new Properties();
         p.put("ibis.constellation.master", "true");
-        p.put("ibis.pool.name", "test"); 
+        p.put("ibis.pool.name", "test");
         p.put("ibis.server.address", address);
 
         cn = ConstellationFactory.createConstellation(p, e);
@@ -91,34 +98,35 @@ public class ConstellationMaster {
 
         long init = System.currentTimeMillis();
 
-        System.out.println("Constellation test init took: " + (init-start) + " ms.");
+        logger.info("Constellation test init took: " + (init - start) + " ms.");
     }
 
     /**
      * Initialize the IPL and Constellation on this process.
-     * 
+     *
      * @throws Exception
      */
-    public void initialize() throws Exception { 
+    public void initialize() throws Exception {
 
         // Start an Ibis server here, to serve the pool of constellations.
         TypedProperties properties = new TypedProperties();
         properties.putAll(System.getProperties());
 
-        server = new Server(properties);          
+        server = new Server(properties);
         address = server.getAddress();
 
-        System.out.println("Started server at: " + address);
+        logger.info("Started server at: " + address);
 
-        // Start a Constellation here that only serves as a source of jobs and sink of results. 
+        // Start a Constellation here that only serves as a source of jobs and
+        // sink of results.
 
-        System.out.println("Starting Constellation");
+        logger.info("Starting Constellation");
 
         startConstellation(address);
     }
 
     /**
-     * Return the JVM options needed by the worker to reach the IPL server.  
+     * Return the JVM options needed by the worker to reach the IPL server.
      *
      * @return the JVM options needed by the worker to reach the IPL server.
      */
@@ -127,108 +135,142 @@ public class ConstellationMaster {
     }
 
     /**
-     * Splits the provided HDFS input file into blocks and submit a SHA1Job for each block. 
-     * 
-     * @param inputFile The HDFS input file
-     * @throws Exception 
-     */    
-    public void submitJobs(String inputFile) throws Exception { 
+     * Splits the provided HDFS input file into blocks and submit a SHA1Job for
+     * each block.
+     *
+     * @param inputFile
+     *            The HDFS input file
+     * @throws Exception
+     */
+    public void submitJobs(String inputFile) {
 
-        // Find the test input file. 
+        // Find the test input file.
 
-        Path testfile = new Path(inputFile); 
-        
-        FileStatus stat = fs.getFileStatus(testfile);
+        Path testfile = new Path(inputFile);
 
-        System.out.println("Found input file " + testfile.getName() + " with length " + stat.getLen() + " blocksize " + 
-                stat.getBlockSize() + " replication " + stat.getReplication());
+        FileStatus stat = null;
+        BlockLocation[] locs = null;
 
-        BlockLocation [] locs = fs.getFileBlockLocations(testfile, 0, stat.getLen());
+        try {
+            stat = fs.getFileStatus(testfile);
+            if (logger.isInfoEnabled()) {
+                logger.info("Found input file " + testfile.getName()
+                        + " with length " + stat.getLen() + " blocksize "
+                        + stat.getBlockSize() + " replication "
+                        + stat.getReplication());
+            }
+        } catch (Throwable e) {
+            logger.error("could not get status of file " + testfile, e);
+        }
+
+        if (stat != null) {
+            try {
+                locs = fs.getFileBlockLocations(testfile, 0, stat.getLen());
+            } catch (Throwable e) {
+                logger.error(
+                        "could not get block locations of file " + testfile, e);
+            }
+        }
 
         // Sumbit collector job here to collect replies
-        System.out.println("Submitting event collector");
+        logger.info("Submitting event collector");
 
-        sec = new MultiEventCollector(new UnitActivityContext("master"), locs.length);
+        sec = new MultiEventCollector(new UnitActivityContext("master"),
+                locs == null ? 0 : locs.length);
         secid = cn.submit(sec);
 
         // Generate a Job for each block
-        System.out.println("Block locations: ");
+        if (locs != null) {
+            logger.info("Block locations: ");
 
-        for (int i=0;i<locs.length;i++) {
-            BlockLocation b = locs[i];
-            
-            System.out.println("Block " + b.getOffset() + " - " + (b.getOffset() + b.getLength()));
-            System.out.println("Block locations: " + Arrays.toString(b.getHosts()));
-            System.out.println("Cached locations: " + Arrays.toString(b.getCachedHosts()));
-            System.out.println("Names: " + Arrays.toString(b.getNames()));
-            System.out.println("Topo paths: " + Arrays.toString(b.getTopologyPaths()));
+            for (int i = 0; i < locs.length; i++) {
+                BlockLocation b = locs[i];
 
-            System.out.println("Submitting TestJob " + i);
+                if (logger.isInfoEnabled()) {
+                    try {
+                        logger.info("Block " + b.getOffset() + " - "
+                                + (b.getOffset() + b.getLength())
+                                + ", Block locations: "
+                                + Arrays.toString(b.getHosts()));
+                        logger.info("Cached locations: "
+                                + Arrays.toString(b.getCachedHosts())
+                                + "Names: " + Arrays.toString(b.getNames()));
+                        logger.info("Topo paths: "
+                                + Arrays.toString(b.getTopologyPaths()));
+                    } catch (Throwable e) {
+                        logger.error("Got exception in verbose", e);
+                    }
+                    logger.info("Submitting TestJob " + i);
+                }
 
-            SHA1Job job = new SHA1Job(secid, new UnitActivityContext("test"), inputFile, i, b.getOffset(), b.getLength());
-            
-            cn.submit(job);
+                SHA1Job job = new SHA1Job(secid,
+                        new UnitActivityContext("test"), inputFile, i,
+                        b.getOffset(), b.getLength());
+
+                cn.submit(job);
+            }
         }
     }
 
-    // Convert a SHA1 hash to a String so we can print it.    
-    private final String SHA1toString(byte [] sha1) { 
-        
+    // Convert a SHA1 hash to a String so we can print it.
+    private final String SHA1toString(byte[] sha1) {
+
         StringBuffer sb = new StringBuffer();
 
         for (int i = 0; i < sha1.length; i++) {
-            sb.append(Integer.toString((sha1[i] & 0xff) + 0x100, 16).substring(1));
+            sb.append(Integer.toString((sha1[i] & 0xff) + 0x100, 16)
+                    .substring(1));
         }
-         
-        return sb.toString();        
+
+        return sb.toString();
     }
-    
-    /** 
+
+    /**
      * Wait for all jobs to return a result.
-     * 
+     *
      * @throws Exception
      */
-    public void waitForJobs() throws Exception { 
+    public void waitForJobs() throws Exception {
 
-        Event [] events = sec.waitForEvents();
+        Event[] events = sec.waitForEvents();
 
         System.out.println("Results: ");
-        
-        for (Event e : events) { 
-            
-            SHA1Result result = (SHA1Result) e.data; 
-            
-            if (result.hasFailed()) { 
+
+        for (Event e : events) {
+
+            SHA1Result result = (SHA1Result) e.data;
+
+            if (result.hasFailed()) {
                 System.out.println("  " + result.getBlock() + " FAILED");
-            } else {             
-                System.out.println("  " + result.getBlock() + " " + SHA1toString(result.getSHA1()));
-            } 
+            } else {
+                System.out.println("  " + result.getBlock() + " "
+                        + SHA1toString(result.getSHA1()));
+            }
         }
-        
+
         end = System.currentTimeMillis();
 
-        System.out.println("Constellation test run took: " + (end-start) + " ms.");
+        System.out.println(
+                "Constellation test run took: " + (end - start) + " ms.");
     }
 
-    /** 
+    /**
      * Stop Constellation and the IPL server.
      */
-    public void cleanup() { 
-        
-        try { 
+    public void cleanup() {
+
+        try {
             cn.done();
-        } catch (Exception e) { 
-            System.out.println("Failed to terminate Constellation!" + e);
-            e.printStackTrace(System.out);
+        } catch (Throwable e) {
+            logger.error("Failed to terminate Constellation!", e);
         }
 
-        try { 
+        try {
             // Kill the ibis server
-            server.end(10*1000);
-        } catch (Exception e) { 
-            System.out.println("Failed to terminate IPL Server!" + e);
-            e.printStackTrace(System.out);
-        }   
+            server.end(10 * 1000);
+        } catch (Throwable e) {
+            logger.error("Failed to terminate IPL Server!", e);
+        }
     }
-        
+
 }

@@ -41,15 +41,21 @@ import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Simple YARN ApplicationMaster containing the plumbing to starts workers on YARN. 
+ * Simple YARN ApplicationMaster containing the plumbing to starts workers on
+ * YARN.
  */
 public class YarnMaster {
 
-    private String hdfsRoot; 
-    private String libPath; 
-    private int containerCount; 
+    public static final Logger logger = LoggerFactory
+            .getLogger(YarnMaster.class);
+
+    private String hdfsRoot;
+    private String libPath;
+    private int containerCount;
 
     private YarnConfiguration conf;
     private FileSystem fs;
@@ -58,14 +64,15 @@ public class YarnMaster {
 
     private AMRMClient<ContainerRequest> rmClient;
 
-    public YarnMaster(String hdfsRoot, String libPath, int containerCount) throws IOException { 
+    public YarnMaster(String hdfsRoot, String libPath, int containerCount)
+            throws IOException {
         this.hdfsRoot = hdfsRoot;
         this.libPath = libPath;
         this.containerCount = containerCount;
 
         conf = new YarnConfiguration();
         fs = FileSystem.get(conf);
-        localResources = new HashMap<String, LocalResource>();        
+        localResources = new HashMap<String, LocalResource>();
     }
 
     /**
@@ -73,34 +80,40 @@ public class YarnMaster {
      */
     public FileSystem getFileSystem() {
         return fs;
-    }      
+    }
 
     /**
      * Stage in the dependencies in libPath to HDFS.
-     *  
+     *
      * @throws IOException
      */
     public void stageIn() throws IOException {
 
-        System.out.println("ApplicationMaster: stage-in dependencies from " + libPath + " to " + hdfsRoot + File.separator + libPath);
+        logger.info("ApplicationMaster: stage-in dependencies from " + libPath
+                + " to " + hdfsRoot + File.separator + libPath);
 
-        // Add all file dependencies that the ApplicationSubmitter has put in HDFS for us to the LocalResources map. 
+        // Add all file dependencies that the ApplicationSubmitter has put in
+        // HDFS for us to the LocalResources map.
         Utils.addHDFSDirToLocalResources(fs, hdfsRoot, libPath, localResources);
     }
 
     /**
      * Submit the specified number of containers to YARN.
-     * 
-     * @param jvmOpts The options to provide to the JVM
-     * @param executor The application to start 
-     * @param executorOpts The options of the application 
+     *
+     * @param jvmOpts
+     *            The options to provide to the JVM
+     * @param executor
+     *            The application to start
+     * @param executorOpts
+     *            The options of the application
      * @throws YarnException
      * @throws IOException
      */
-    public void startWorkers(String jvmOpts, String executor, String executorOpts) throws YarnException, IOException { 
+    public void startWorkers(String jvmOpts, String executor,
+            String executorOpts) throws YarnException, IOException {
 
-        System.out.println("Starting workers");
-        
+        logger.info("Starting workers");
+
         rmClient = AMRMClient.createAMRMClient();
         rmClient.init(conf);
         rmClient.start();
@@ -124,16 +137,20 @@ public class YarnMaster {
 
         // Make container requests to ResourceManager
         for (int i = 0; i < containerCount; ++i) {
-            ContainerRequest containerAsk = new ContainerRequest(capability, /*String [] nodes*/null, /*String [] racks*/null, 
+            ContainerRequest containerAsk = new ContainerRequest(capability,
+                    /* String [] nodes */null, /* String [] racks */null,
                     priority);
 
-            System.out.println("Doing contanier request " + i);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Doing container request " + i);
+            }
             rmClient.addContainerRequest(containerAsk);
         }
 
         // Setup CLASSPATH for the JVM that will run the ExecutorMain.
         Map<String, String> appMasterEnv = new HashMap<String, String>();
-        appMasterEnv.put("CLASSPATH", Utils.createClassPath(conf, localResources));
+        appMasterEnv.put("CLASSPATH",
+                Utils.createClassPath(conf, localResources));
 
         // Obtain allocated containers, launch executors and check for responses
         int responseId = 0;
@@ -146,77 +163,90 @@ public class YarnMaster {
 
             for (Container container : response.getAllocatedContainers()) {
                 // Launch container by create ContainerLaunchContext
-                ContainerLaunchContext ctx = Records.newRecord(ContainerLaunchContext.class);
+                ContainerLaunchContext ctx = Records
+                        .newRecord(ContainerLaunchContext.class);
 
-                System.out.println("Starting container on : " + container.getNodeId().getHost());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Starting container on : "
+                            + container.getNodeId().getHost());
+                }
 
-                List<String> commands = Collections.singletonList(Environment.JAVA_HOME.$$() + "/bin/java" +
-                        " -Xmx256M" +
-                        " " + jvmOpts +  
-                        " " + executor + 
-                        " " + executorOpts + 
-                        " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stdout" + 
-                        " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/executor.stderr");
+                List<String> commands = Collections
+                        .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
+                                + " -Xmx256M" + " " + jvmOpts + " " + executor
+                                + " " + executorOpts + " 1>"
+                                + ApplicationConstants.LOG_DIR_EXPANSION_VAR
+                                + "/executor.stdout" + " 2>"
+                                + ApplicationConstants.LOG_DIR_EXPANSION_VAR
+                                + "/executor.stderr");
 
-                //System.out.println("CONTAINER STARTS " + commands);
+                // System.out.println("CONTAINER STARTS " + commands);
 
                 ctx.setCommands(commands);
                 ctx.setEnvironment(appMasterEnv);
                 ctx.setLocalResources(localResources);
 
-                //System.out.println("Launching container " + container.getId() + " " + ctx);
+                // System.out.println("Launching container " + container.getId()
+                // + " " + ctx);
 
-                System.out.println("Launching worker " + launchedContainers + "/" + containerCount + " " +  container.getId());
-                
+                logger.info("Launching worker " + launchedContainers + "/"
+                        + containerCount + " " + container.getId());
+
                 launchedContainers++;
 
                 nmClient.startContainer(container, ctx);
 
                 resp.add(response);
 
-                try { 
+                try {
                     Thread.sleep(100);
-                } catch (InterruptedException e) { 
+                } catch (InterruptedException e) {
                     // ignored
                 }
-            }            
+            }
         }
     }
 
     /**
-     * Wait for all workers to finish. 
-     * 
+     * Wait for all workers to finish.
+     *
      * @throws YarnException
      * @throws IOException
      */
-    public void waitForWorkers() throws YarnException, IOException { 
+    public void waitForWorkers() throws YarnException, IOException {
 
-        System.out.println("Waiting for workers");
+        logger.info("Waiting for workers");
 
         int completedContainers = 0;
-        
+
         // Wait for the remaining containers to complete
         while (completedContainers != containerCount) {
-            
-            AllocateResponse response = rmClient.allocate(completedContainers / containerCount);
 
-            for (ContainerStatus status : response.getCompletedContainersStatuses()) {
+            AllocateResponse response = rmClient
+                    .allocate(completedContainers / containerCount);
+
+            for (ContainerStatus status : response
+                    .getCompletedContainersStatuses()) {
                 ++completedContainers;
-                // System.out.println("ContainerID:" + status.getContainerId() + ", state:" + status.getState().name());
-                System.out.println("Workers completed " + completedContainers + "/" + containerCount);
+                // System.out.println("ContainerID:" + status.getContainerId() +
+                // ", state:" + status.getState().name());
+                logger.info("Workers completed " + completedContainers + "/"
+                        + containerCount + ", state: "
+                        + status.getState().name());
             }
-            
-            try { 
+
+            try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) { 
+            } catch (InterruptedException e) {
                 // ignored
             }
         }
 
-        System.out.println("Stopping YarnMaster");
+        logger.info("Stopping YarnMaster");
 
         // Un-register with ResourceManager
-        rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED, "We rule!!", "");
+        rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
+                "We rule!!", "");
         rmClient.stop();
     }
 }

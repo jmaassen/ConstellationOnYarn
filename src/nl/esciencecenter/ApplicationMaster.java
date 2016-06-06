@@ -16,17 +16,25 @@
 
 package nl.esciencecenter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import nl.esciencecenter.constellation.ConstellationMaster;
 import nl.esciencecenter.yarn.YarnMaster;
 
 /**
- * Simple Application master that combines a YarnMaster and ConstellationMaster into a single master application. 
+ * Simple Application master that combines a YarnMaster and ConstellationMaster
+ * into a single master application.
  */
 public class ApplicationMaster {
- 
+
+    public static final Logger logger = LoggerFactory
+            .getLogger(ApplicationMaster.class);
+
     /**
-     * Do not run directly!! This application should be submitted to be run inside a YARN cluster.
-     * 
+     * Do not run directly!! This application should be submitted to be run
+     * inside a YARN cluster.
+     *
      * @param args
      * @throws Exception
      */
@@ -38,24 +46,24 @@ public class ApplicationMaster {
         String inputFile = args[2];
         int containerCount = Integer.parseInt(args[3]);
 
-        try { 
+        try {
             YarnMaster m = new YarnMaster(hdfsRoot, libPath, containerCount);
             m.stageIn();
 
             ConstellationMaster c = new ConstellationMaster(m.getFileSystem());
             c.initialize();
 
-            m.startWorkers(c.getJVMOpts(), "nl.esciencecenter.constellation.ConstellationWorker", "");
+            m.startWorkers(c.getJVMOpts(),
+                    "nl.esciencecenter.constellation.ConstellationWorker", "");
 
             c.submitJobs(inputFile);
             c.waitForJobs();
             c.cleanup();
 
             m.waitForWorkers();
-            
+
         } catch (Exception e) {
-            System.out.println("ApplicationMaster Failed " + e);
-            e.printStackTrace(System.out);         
-        }        
-    }    
+            logger.error("ApplicationMaster Failed", e);
+        }
+    }
 }
