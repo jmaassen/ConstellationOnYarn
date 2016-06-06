@@ -25,25 +25,25 @@ public class SHA1Result implements Serializable {
 
     // Generated
     private static final long serialVersionUID = -1475352090350923307L;
-    
+
     private String file;
     private int block;
-    private byte [] SHA1;
-    private Exception e; 
-    
-    private SHA1Result(String file, int block, byte [] sha1, Exception e) {
+    private byte[] SHA1;
+    private Throwable e;
+
+    private SHA1Result(String file, int block, byte[] sha1, Throwable e) {
         this.file = file;
-        this.block= block;
+        this.block = block;
         this.SHA1 = sha1;
         this.e = e;
-               
+
     }
 
-    public SHA1Result(String file, int block, byte [] sha1) {
+    public SHA1Result(String file, int block, byte[] sha1) {
         this(file, block, sha1, null);
     }
 
-    public SHA1Result(String file, int block, Exception e) {
+    public SHA1Result(String file, int block, Throwable e) {
         this(file, block, null, e);
     }
 
@@ -58,12 +58,12 @@ public class SHA1Result implements Serializable {
     public byte[] getSHA1() {
         return SHA1;
     }
-   
-    public Exception getException() {
+
+    public Throwable getException() {
         return e;
     }
-    
-    public boolean hasFailed() { 
+
+    public boolean hasFailed() {
         return e != null;
     }
 }

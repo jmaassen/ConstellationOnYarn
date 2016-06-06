@@ -23,6 +23,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
@@ -33,6 +35,8 @@ import ibis.constellation.SimpleActivity;
  * Simple test job that computes a SHA1 hash of a single block in an input file.
  */
 public class SHA1Job extends SimpleActivity {
+
+    public static final Logger logger = LoggerFactory.getLogger(SHA1Job.class);
 
     private static final long serialVersionUID = -5546760613223653596L;
 
@@ -55,8 +59,8 @@ public class SHA1Job extends SimpleActivity {
     @Override
     public void simpleActivity() {
 
-        System.out.println("Running SHA1Job " + file + " " + blockIndex + " "
-                + offset + " " + length);
+        logger.info("Running SHA1Job " + file + " " + blockIndex + " " + offset
+                + " " + length);
 
         // Create a buffer for the input data
         byte[] buffer = new byte[BUFFERSIZE];
@@ -94,18 +98,16 @@ public class SHA1Job extends SimpleActivity {
 
             long end = System.currentTimeMillis();
 
-            System.out.println("SHA1Job " + file + " " + blockIndex + " "
-                    + offset + " " + length + " successful and took "
-                    + (end - start) + " ms");
+            logger.info("SHA1Job " + file + " " + blockIndex + " " + offset
+                    + " " + length + " successful and took " + (end - start)
+                    + " ms");
 
             getExecutor().send(new Event(identifier(), getParent(),
                     new SHA1Result(file, blockIndex, digest)));
 
-        } catch (Exception e) {
-
-            System.out.println("SHA1Job " + file + " " + blockIndex + " "
-                    + offset + " " + length + " failed " + e);
-            e.printStackTrace(System.out);
+        } catch (Throwable e) {
+            logger.error("SHA1Job " + file + " " + blockIndex + " " + offset
+                    + " " + length + " failed.", e);
 
             getExecutor().send(new Event(identifier(), getParent(),
                     new SHA1Result(file, blockIndex, e)));
