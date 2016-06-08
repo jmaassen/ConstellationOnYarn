@@ -104,7 +104,7 @@ public class ConstellationWorker {
             InetAddress[] addresses = IPUtils.getLocalHostAddresses();
             String[] result = new String[addresses.length];
             for (int i = 0; i < result.length; i++) {
-                result[i] = addresses[i].getHostAddress();
+                result[i] = addresses[i].getHostName();
             }
             return result;
         } catch (Throwable e) {
