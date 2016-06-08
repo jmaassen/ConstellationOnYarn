@@ -61,6 +61,9 @@ public class SHA1Job extends SimpleActivity {
 
         logger.info("Running SHA1Job " + file + " " + blockIndex + " " + offset
                 + " " + length);
+        logger.info(
+                "Executor context = " + getExecutor().getContext().toString());
+        logger.info("Activity context = " + getContext().toString());
 
         // Create a buffer for the input data
         byte[] buffer = new byte[BUFFERSIZE];
