@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationFactory;
@@ -35,6 +36,7 @@ import ibis.constellation.MultiEventCollector;
 import ibis.constellation.SimpleExecutor;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
+import ibis.constellation.context.OrActivityContext;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
@@ -182,9 +184,27 @@ public class ConstellationMaster {
         // Generate a Job for each block
         if (locs != null) {
             logger.info("Block locations: ");
+            UnitActivityContext anyCtxt = new UnitActivityContext("any");
 
             for (int i = 0; i < locs.length; i++) {
+                ActivityContext ctxt = anyCtxt;
                 BlockLocation b = locs[i];
+                try {
+                    String[] hosts = b.getHosts();
+                    if (hosts.length > 0) {
+                        UnitActivityContext[] ctxts = new UnitActivityContext[hosts.length
+                                + 1];
+                        for (int j = 0; j < hosts.length; j++) {
+                            ctxts[j] = new UnitActivityContext(hosts[j]);
+                        }
+                        ctxts[ctxts.length - 1] = anyCtxt;
+                        ctxt = new OrActivityContext(ctxts);
+                    }
+                } catch (Throwable e) {
+                    logger.error(
+                            "Could not get locations of blocks, continuing with \"any\" context...",
+                            e);
+                }
 
                 if (logger.isInfoEnabled()) {
                     try {
@@ -200,11 +220,11 @@ public class ConstellationMaster {
                     } catch (Throwable e) {
                         logger.error("Got exception in verbose", e);
                     }
-                    logger.info("Submitting TestJob " + i);
+                    logger.info("Submitting TestJob " + i + ", ctxt = "
+                            + ctxt.toString());
                 }
 
-                SHA1Job job = new SHA1Job(secid,
-                        new UnitActivityContext("test"), inputFile, i,
+                SHA1Job job = new SHA1Job(secid, ctxt, inputFile, i,
                         b.getOffset(), b.getLength());
 
                 cn.submit(job);

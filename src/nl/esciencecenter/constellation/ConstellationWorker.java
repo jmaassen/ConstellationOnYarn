@@ -16,6 +16,7 @@
 
 package nl.esciencecenter.constellation;
 
+import java.net.InetAddress;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -24,10 +25,13 @@ import org.slf4j.LoggerFactory;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.Executor;
+import ibis.constellation.ExecutorContext;
 import ibis.constellation.SimpleExecutor;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
+import ibis.constellation.context.OrExecutorContext;
 import ibis.constellation.context.UnitExecutorContext;
+import ibis.util.IPUtils;
 
 /**
  * Simple 'worker' application that creates a Constellation with 1 executor,
@@ -56,10 +60,19 @@ public class ConstellationWorker {
             Executor[] e = new Executor[exec];
 
             StealStrategy st = StealStrategy.ANY;
+            String[] myAddresses = myHostNames();
+            UnitExecutorContext[] ctxts = new UnitExecutorContext[myAddresses.length
+                    + 1];
+            for (int i = 0; i < myAddresses.length; i++) {
+                ctxts[i] = new UnitExecutorContext(myAddresses[i]);
+            }
+            ctxts[ctxts.length - 1] = new UnitExecutorContext("any");
+            ExecutorContext ctxt = ctxts.length == 1 ? ctxts[0]
+                    : new OrExecutorContext(ctxts, true);
 
             for (int i = 0; i < exec; i++) {
                 e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
-                        new UnitExecutorContext("test"), st, st, st);
+                        ctxt, st, st, st);
             }
 
             Properties p = new Properties();
@@ -83,6 +96,19 @@ public class ConstellationWorker {
 
         } catch (Exception ex) {
             logger.error("Failed to run Constellation ", ex);
+        }
+    }
+
+    private static String[] myHostNames() {
+        try {
+            InetAddress[] addresses = IPUtils.getLocalHostAddresses();
+            String[] result = new String[addresses.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = addresses[i].getHostAddress();
+            }
+            return result;
+        } catch (Throwable e) {
+            return new String[0];
         }
     }
 }
