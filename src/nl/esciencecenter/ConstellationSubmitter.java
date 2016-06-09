@@ -39,12 +39,15 @@ public class ConstellationSubmitter {
      * Main entry point of this example that will submit a
      * nl.esciencecenter.ApplicationMaster to YARN.
      *
-     * This method expects 4 command line parameters:
-     *
-     * - The HDFS root directory (for example: /user/jason) - The local
-     * directory containing the dependencies (for example: ./dist) - The input
-     * file on HDFS to process, assumed to be already present. - The number of
-     * workers to use to process the input file (default is 1).
+     * This method expects 4 or 5 command line parameters: <br>
+     * - The HDFS root directory (for example: /user/jason) <br>
+     * - The local directory containing the dependencies (for example: ./dist)
+     * <br>
+     * - The input file on HDFS to process, assumed to be already present <br>
+     * - flag indicating whether to use specific contexts or not (true or false)
+     * <br>
+     * - Optionally, he number of workers to use to process the input file
+     * (default is 1).
      *
      * @param args
      */
@@ -53,13 +56,14 @@ public class ConstellationSubmitter {
         String hdfsRoot = args[0];
         String libPath = args[1];
         String inputFile = args[2];
-        int workerCount = args.length > 3 ? Integer.parseInt(args[3]) : 1;
+        String flag = args[3];
+        int workerCount = args.length > 4 ? Integer.parseInt(args[4]) : 1;
 
         try {
             YarnSubmitter ys = new YarnSubmitter(hdfsRoot, libPath);
             ys.stageIn();
             ys.submitApplicationMaster("nl.esciencecenter.ApplicationMaster",
-                    inputFile + " " + workerCount);
+                    inputFile + " " + flag + " " + workerCount);
             ys.waitForApplication();
             ys.cleanup();
         } catch (Exception e) {

@@ -106,7 +106,7 @@ public class SHA1Job extends SimpleActivity {
                     + " ms");
 
             getExecutor().send(new Event(identifier(), getParent(),
-                    new SHA1Result(file, blockIndex, digest)));
+                    new SHA1Result(file, blockIndex, digest, end - start)));
 
         } catch (Throwable e) {
             logger.error("SHA1Job " + file + " " + blockIndex + " " + offset
