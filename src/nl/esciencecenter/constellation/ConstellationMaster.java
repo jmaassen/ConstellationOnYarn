@@ -142,9 +142,9 @@ public class ConstellationMaster {
      *
      * @param inputFile
      *            The HDFS input file
-     * @throws Exception
+     * @param flag
      */
-    public void submitJobs(String inputFile) {
+    public void submitJobs(String inputFile, String flag) {
 
         // Find the test input file.
 
@@ -152,6 +152,7 @@ public class ConstellationMaster {
 
         FileStatus stat = null;
         BlockLocation[] locs = null;
+        boolean useSpecificContext = flag.equalsIgnoreCase("true");
 
         try {
             stat = fs.getFileStatus(testfile);
@@ -189,21 +190,23 @@ public class ConstellationMaster {
             for (int i = 0; i < locs.length; i++) {
                 ActivityContext ctxt = anyCtxt;
                 BlockLocation b = locs[i];
-                try {
-                    String[] hosts = b.getHosts();
-                    if (hosts.length > 0) {
-                        UnitActivityContext[] ctxts = new UnitActivityContext[hosts.length
-                                + 1];
-                        for (int j = 0; j < hosts.length; j++) {
-                            ctxts[j] = new UnitActivityContext(hosts[j]);
+                if (useSpecificContext) {
+                    try {
+                        String[] hosts = b.getHosts();
+                        if (hosts.length > 0) {
+                            UnitActivityContext[] ctxts = new UnitActivityContext[hosts.length
+                                    + 1];
+                            for (int j = 0; j < hosts.length; j++) {
+                                ctxts[j] = new UnitActivityContext(hosts[j]);
+                            }
+                            ctxts[ctxts.length - 1] = anyCtxt;
+                            ctxt = new OrActivityContext(ctxts, true);
                         }
-                        ctxts[ctxts.length - 1] = anyCtxt;
-                        ctxt = new OrActivityContext(ctxts);
+                    } catch (Throwable e) {
+                        logger.error(
+                                "Could not get locations of blocks, continuing with \"any\" context...",
+                                e);
                     }
-                } catch (Throwable e) {
-                    logger.error(
-                            "Could not get locations of blocks, continuing with \"any\" context...",
-                            e);
                 }
 
                 if (logger.isInfoEnabled()) {
@@ -264,7 +267,8 @@ public class ConstellationMaster {
                 System.out.println("  " + result.getBlock() + " FAILED");
             } else {
                 System.out.println("  " + result.getBlock() + " "
-                        + SHA1toString(result.getSHA1()));
+                        + SHA1toString(result.getSHA1()) + ", took "
+                        + result.getTime() + " ms.");
             }
         }
 

@@ -171,6 +171,11 @@ public class YarnMaster {
                             + container.getNodeId().getHost());
                 }
 
+                // TODO: can we get rack-info from the container? If so, pass it
+                // on to
+                // the executor, which could use it to construct an
+                // executorcontext.
+
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
                                 + " -Xmx256M" + " " + jvmOpts + " " + executor
