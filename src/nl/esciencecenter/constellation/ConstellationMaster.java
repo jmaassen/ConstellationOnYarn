@@ -17,12 +17,16 @@
 package nl.esciencecenter.constellation;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.net.Node;
+import org.apache.hadoop.net.NodeBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,6 +137,8 @@ public class ConstellationMaster {
      * @return the JVM options needed by the worker to reach the IPL server.
      */
     public String getJVMOpts() {
+        // "test" is not very unique, but since the IPL server only serves a
+        // single run, this is fine.
         return " -Dibis.pool.name=test" + " -Dibis.server.address=" + address;
     }
 
@@ -192,12 +198,31 @@ public class ConstellationMaster {
                 BlockLocation b = locs[i];
                 if (useSpecificContext) {
                     try {
-                        String[] hosts = b.getHosts();
-                        if (hosts.length > 0) {
-                            UnitActivityContext[] ctxts = new UnitActivityContext[hosts.length
-                                    + 1];
-                            for (int j = 0; j < hosts.length; j++) {
-                                ctxts[j] = new UnitActivityContext(hosts[j]);
+                        String[] paths = locs[i].getTopologyPaths();
+                        if (paths.length > 0) {
+                            Set<String> racks = new HashSet<String>();
+                            String[] nodes = new String[paths.length];
+                            for (int j = 0; j < paths.length; j++) {
+                                Node owner = new NodeBase(paths[j]);
+                                nodes[j] = owner.getName();
+                                nodes[j] = nodes[j].substring(0,
+                                        nodes[j].indexOf(':'));
+                                Node rack = owner.getParent();
+                                if (rack != null) {
+                                    String s = rack.getName();
+                                    if (s != null && s != "") {
+                                        racks.add(s);
+                                    }
+                                }
+                            }
+                            UnitActivityContext[] ctxts = new UnitActivityContext[nodes.length
+                                    + racks.size() + 1];
+                            int j;
+                            for (j = 0; j < nodes.length; j++) {
+                                ctxts[j] = new UnitActivityContext(nodes[j]);
+                            }
+                            for (String s : racks) {
+                                ctxts[j++] = new UnitActivityContext(s);
                             }
                             ctxts[ctxts.length - 1] = anyCtxt;
                             ctxt = new OrActivityContext(ctxts, true);
