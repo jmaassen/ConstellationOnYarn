@@ -40,7 +40,7 @@ Next put this image into HDFS for example (after replacing `/user/jason` with yo
   
 Next run the example using (after replacing `/user/jason` with your home directory in HDFS __twice__):
 
-	java -cp ./dist/ConstellationOnYarn.jar:`yarn classpath` nl.esciencecenter.ConstellationSubmitter /user/jason/ ./dist /user/jason/ubuntu-16.04-src-1.iso
+	java -cp ./dist/ConstellationOnYarn.jar:`yarn classpath` nl.esciencecenter.ConstellationSubmitter /user/jason/ ./dist /user/jason/ubuntu-16.04-src-1.iso true 1
 
 This starts the `nl.esciencecenter.ConstellationSubmitter` example _locally_, which connects to the YARN scheduler and submits the example. This class 
 expects the following command-line parameters:
@@ -48,6 +48,7 @@ expects the following command-line parameters:
 - The HDFS root directory to which the dependencies should be staged-in, `/user/jason` in this example.
 - The local directory containing the dependencies that need to be staged in. Use `./dist` to run this example.
 - The input file (on HDFS) to process, `/user/jason/ubuntu-16.04-src-1.iso` in this example. 
+- true/false, indicating whether an attempt should be made to create precise activity contexts.
 - The number of YARN Workers to submit, `1` in this example.
 
 The example first copies the `./dist` directory to HDFS, as these files are needed on the YARN nodes to run the example. It then stubmits the job to YARN, 

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.net.Node;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
@@ -40,6 +41,7 @@ import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,7 @@ public class YarnMaster {
         this.containerCount = containerCount;
 
         conf = new YarnConfiguration();
+        RackResolver.init(conf);
         fs = FileSystem.get(conf);
         localResources = new HashMap<String, LocalResource>();
     }
@@ -171,15 +174,20 @@ public class YarnMaster {
                             + container.getNodeId().getHost());
                 }
 
-                // TODO: can we get rack-info from the container? If so, pass it
-                // on to
-                // the executor, which could use it to construct an
-                // executorcontext.
+                // Try and get a rack identification from the node.
+                Node node = RackResolver
+                        .resolve(container.getNodeId().getHost());
+                node = node.getParent(); // get parent to obtain the rack.
 
+                String rack = "";
+                if (node != null) {
+                    rack = node.getName();
+                }
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
-                                + " -Xmx256M" + " " + jvmOpts + " " + executor
-                                + " " + executorOpts + " 1>"
+                                + " -Xmx256M" + " " + jvmOpts
+                                + " -Dyarn.constellation.rack=" + rack + " "
+                                + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
                                 + "/executor.stdout" + " 2>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR

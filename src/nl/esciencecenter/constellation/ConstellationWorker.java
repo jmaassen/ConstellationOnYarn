@@ -61,14 +61,24 @@ public class ConstellationWorker {
 
             StealStrategy st = StealStrategy.ANY;
             String[] myAddresses = myHostNames();
+            String rack = System.getProperty("yarn.constellation.rack");
+            UnitExecutorContext rackContext = null;
+            if (rack != null && !"".equals(rack)) {
+                rackContext = new UnitExecutorContext(rack);
+            }
             UnitExecutorContext[] ctxts = new UnitExecutorContext[myAddresses.length
-                    + 1];
+                    + (rackContext != null ? 2 : 1)];
             for (int i = 0; i < myAddresses.length; i++) {
                 ctxts[i] = new UnitExecutorContext(myAddresses[i]);
             }
             ctxts[ctxts.length - 1] = new UnitExecutorContext("any");
+            if (rackContext != null) {
+                ctxts[myAddresses.length] = rackContext;
+            }
             ExecutorContext ctxt = ctxts.length == 1 ? ctxts[0]
                     : new OrExecutorContext(ctxts, true);
+
+            logger.info("Executor context = " + ctxt.toString());
 
             for (int i = 0; i < exec; i++) {
                 e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
@@ -104,7 +114,7 @@ public class ConstellationWorker {
             InetAddress[] addresses = IPUtils.getLocalHostAddresses();
             String[] result = new String[addresses.length];
             for (int i = 0; i < result.length; i++) {
-                result[i] = addresses[i].getHostName();
+                result[i] = addresses[i].getHostAddress();
             }
             return result;
         } catch (Throwable e) {
