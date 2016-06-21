@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
+import ibis.constellation.ConstellationCreationException;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.Event;
 import ibis.constellation.Executor;
@@ -81,7 +82,8 @@ public class ConstellationMaster {
 
     // Start a local Constellation using a single executor only used to gather
     // the results.
-    private final void startConstellation(String address) throws Exception {
+    private final void startConstellation(String address)
+            throws ConstellationCreationException {
 
         logger.info("Starting Constellation");
 
@@ -146,6 +148,8 @@ public class ConstellationMaster {
         return " -Dibis.pool.name=test" + " -Dibis.server.address=" + address;
     }
 
+    // Returns an entry list of string-integer pairs, sorted on the integer,
+    // highest value first.
     private ArrayList<Entry<String, Integer>> getList(
             Map<String, Integer> map) {
         ArrayList<Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>(
