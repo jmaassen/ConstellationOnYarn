@@ -18,6 +18,7 @@ package nl.esciencecenter.yarn;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -154,6 +155,7 @@ public class YarnMaster {
         Map<String, String> appMasterEnv = new HashMap<String, String>();
         appMasterEnv.put("CLASSPATH",
                 Utils.createClassPath(conf, localResources));
+        logger.info("CLASSPATH set to " + appMasterEnv.get("CLASSPATH"));
 
         // Obtain allocated containers, launch executors and check for responses
         int responseId = 0;
@@ -204,6 +206,7 @@ public class YarnMaster {
 
                 logger.info("Launching worker " + launchedContainers + "/"
                         + containerCount + " " + container.getId());
+                logger.info("Commands: " + Arrays.toString(commands.toArray()));
 
                 launchedContainers++;
 
