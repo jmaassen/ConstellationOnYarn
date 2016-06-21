@@ -18,6 +18,7 @@ package nl.esciencecenter.yarn;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.net.Node;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
@@ -40,6 +42,7 @@ import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +74,7 @@ public class YarnMaster {
         this.containerCount = containerCount;
 
         conf = new YarnConfiguration();
+        RackResolver.init(conf);
         fs = FileSystem.get(conf);
         localResources = new HashMap<String, LocalResource>();
     }
@@ -151,6 +155,7 @@ public class YarnMaster {
         Map<String, String> appMasterEnv = new HashMap<String, String>();
         appMasterEnv.put("CLASSPATH",
                 Utils.createClassPath(conf, localResources));
+        logger.info("CLASSPATH set to " + appMasterEnv.get("CLASSPATH"));
 
         // Obtain allocated containers, launch executors and check for responses
         int responseId = 0;
@@ -171,10 +176,21 @@ public class YarnMaster {
                             + container.getNodeId().getHost());
                 }
 
+                // Try and get a rack identification from the node.
+                Node node = RackResolver
+                        .resolve(container.getNodeId().getHost());
+                node = node.getParent(); // get parent to obtain the rack.
+
+                String rack = "";
+                if (node != null) {
+                    rack = node.getName();
+                }
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
-                                + " -Xmx256M" + " " + jvmOpts + " " + executor
-                                + " " + executorOpts + " 1>"
+                                + " -Xmx256M" + " " + jvmOpts
+                                + " -Dlog4j.configuration=file:./dist/log4j.properties"
+                                + " -Dyarn.constellation.rack=" + rack + " "
+                                + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
                                 + "/executor.stdout" + " 2>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
@@ -191,6 +207,7 @@ public class YarnMaster {
 
                 logger.info("Launching worker " + launchedContainers + "/"
                         + containerCount + " " + container.getId());
+                logger.info("Commands: " + Arrays.toString(commands.toArray()));
 
                 launchedContainers++;
 

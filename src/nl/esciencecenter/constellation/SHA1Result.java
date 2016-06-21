@@ -26,25 +26,28 @@ public class SHA1Result implements Serializable {
     // Generated
     private static final long serialVersionUID = -1475352090350923307L;
 
-    private String file;
-    private int block;
-    private byte[] SHA1;
-    private Throwable e;
+    private final String file;
+    private final int block;
+    private final byte[] SHA1;
+    private final long time;
+    private final Throwable e;
 
-    private SHA1Result(String file, int block, byte[] sha1, Throwable e) {
+    private SHA1Result(String file, int block, byte[] sha1, long time,
+            Throwable e) {
         this.file = file;
         this.block = block;
         this.SHA1 = sha1;
+        this.time = time;
         this.e = e;
 
     }
 
-    public SHA1Result(String file, int block, byte[] sha1) {
-        this(file, block, sha1, null);
+    public SHA1Result(String file, int block, byte[] sha1, long time) {
+        this(file, block, sha1, time, null);
     }
 
     public SHA1Result(String file, int block, Throwable e) {
-        this(file, block, null, e);
+        this(file, block, null, 0, e);
     }
 
     public String getFile() {
@@ -65,5 +68,9 @@ public class SHA1Result implements Serializable {
 
     public boolean hasFailed() {
         return e != null;
+    }
+
+    public long getTime() {
+        return time;
     }
 }

@@ -80,8 +80,10 @@ public class YarnSubmitter {
 
         // Set up the container launch context for the application master
         List<String> cmd = Collections.singletonList(Environment.JAVA_HOME.$$()
-                + "/bin/java" + " -Xmx64M" + " " + mainClass + " " + hdfsRoot
-                + " " + libPath + " " + applicationOptions + " 1>"
+                + "/bin/java" + " -Xmx64M"
+                + " -Dlog4j.configuration=file:./dist/log4j.properties" + " "
+                + mainClass + " " + hdfsRoot + " " + libPath + " "
+                + applicationOptions + " 1>"
                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.stdout"
                 + " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
                 + "/master.stderr");

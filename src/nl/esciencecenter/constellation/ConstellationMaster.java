@@ -16,18 +16,28 @@
 
 package nl.esciencecenter.constellation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.net.Node;
+import org.apache.hadoop.net.NodeBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
+import ibis.constellation.ConstellationCreationException;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.Event;
 import ibis.constellation.Executor;
@@ -35,6 +45,7 @@ import ibis.constellation.MultiEventCollector;
 import ibis.constellation.SimpleExecutor;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
+import ibis.constellation.context.OrActivityContext;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
@@ -71,7 +82,8 @@ public class ConstellationMaster {
 
     // Start a local Constellation using a single executor only used to gather
     // the results.
-    private final void startConstellation(String address) throws Exception {
+    private final void startConstellation(String address)
+            throws ConstellationCreationException {
 
         logger.info("Starting Constellation");
 
@@ -131,7 +143,106 @@ public class ConstellationMaster {
      * @return the JVM options needed by the worker to reach the IPL server.
      */
     public String getJVMOpts() {
+        // "test" is not very unique, but since the IPL server only serves a
+        // single run, this is fine.
         return " -Dibis.pool.name=test" + " -Dibis.server.address=" + address;
+    }
+
+    // Returns an entry list of string-integer pairs, sorted on the integer,
+    // highest value first.
+    private ArrayList<Entry<String, Integer>> getList(
+            Map<String, Integer> map) {
+        ArrayList<Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>(
+                map.entrySet());
+        Collections.sort(list, new Comparator<Entry<String, Integer>>() {
+
+            @Override
+            public int compare(Entry<String, Integer> o1,
+                    Entry<String, Integer> o2) {
+
+                if (o1.getValue() != o2.getValue()) {
+                    return o2.getValue() - o1.getValue();
+                }
+                return o2.getKey().compareTo(o1.getKey());
+            }
+
+        });
+        return list;
+    }
+
+    /**
+     * Creates a suitable activity context for an activity that is going to use
+     * the specified blocks.The heuristic here is to put the most common node
+     * first, and then the most common rack first.
+     *
+     * @param blocks
+     *            the blocks to be used
+     * @return the resulting activity context.
+     */
+    public ActivityContext getContext(BlockLocation[] blocks) {
+
+        HashMap<String, Integer> racks = new HashMap<String, Integer>();
+        HashMap<String, Integer> nodes = new HashMap<String, Integer>();
+
+        UnitActivityContext anyCtxt = new UnitActivityContext("any");
+        ActivityContext result = anyCtxt;
+
+        // First, collect a map of node names and racks with counts from the
+        // blocks.
+        for (BlockLocation block : blocks) {
+            try {
+                String[] paths = block.getTopologyPaths();
+                if (paths.length > 0) {
+                    for (int j = 0; j < paths.length; j++) {
+                        Node owner = new NodeBase(paths[j]);
+                        String s = owner.getName();
+                        s = s.substring(0, s.indexOf(':'));
+                        if (nodes.containsKey(s)) {
+                            nodes.put(s, new Integer(nodes.get(s) + 1));
+                        } else {
+                            nodes.put(s, 1);
+                        }
+                        Node rack = owner.getParent();
+                        if (rack != null) {
+                            s = rack.getName();
+                            if (s != null && s != "") {
+                                if (racks.containsKey(s)) {
+                                    racks.put(s, new Integer(racks.get(s) + 1));
+                                } else {
+                                    racks.put(s, 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Throwable e) {
+                logger.error(
+                        "Could not get locations of blocks, continuing with \"any\" context...",
+                        e);
+                return result;
+            }
+        }
+
+        // Get sorted lists of nodes and racks
+        ArrayList<Entry<String, Integer>> nodelist = getList(nodes);
+        ArrayList<Entry<String, Integer>> racklist = getList(racks);
+
+        // Create suitable or-context
+        if (nodelist.size() + racklist.size() > 0) {
+            UnitActivityContext[] ctxts = new UnitActivityContext[nodelist
+                    .size() + racklist.size() + 1];
+            int j;
+            for (j = 0; j < nodelist.size(); j++) {
+                ctxts[j] = new UnitActivityContext(nodelist.get(j).getKey());
+            }
+            for (int k = 0; k < racklist.size(); k++) {
+                ctxts[j++] = new UnitActivityContext(racklist.get(k).getKey());
+            }
+            ctxts[ctxts.length - 1] = anyCtxt;
+            result = new OrActivityContext(ctxts, true);
+        }
+
+        return result;
     }
 
     /**
@@ -140,9 +251,9 @@ public class ConstellationMaster {
      *
      * @param inputFile
      *            The HDFS input file
-     * @throws Exception
+     * @param flag
      */
-    public void submitJobs(String inputFile) {
+    public void submitJobs(String inputFile, String flag) {
 
         // Find the test input file.
 
@@ -150,6 +261,7 @@ public class ConstellationMaster {
 
         FileStatus stat = null;
         BlockLocation[] locs = null;
+        boolean useSpecificContext = flag.equalsIgnoreCase("true");
 
         try {
             stat = fs.getFileStatus(testfile);
@@ -181,10 +293,14 @@ public class ConstellationMaster {
 
         // Generate a Job for each block
         if (locs != null) {
-            logger.info("Block locations: ");
+            UnitActivityContext anyCtxt = new UnitActivityContext("any");
 
             for (int i = 0; i < locs.length; i++) {
+                ActivityContext ctxt = anyCtxt;
                 BlockLocation b = locs[i];
+                if (useSpecificContext) {
+                    ctxt = getContext(new BlockLocation[] { b });
+                }
 
                 if (logger.isInfoEnabled()) {
                     try {
@@ -200,11 +316,11 @@ public class ConstellationMaster {
                     } catch (Throwable e) {
                         logger.error("Got exception in verbose", e);
                     }
-                    logger.info("Submitting TestJob " + i);
+                    logger.info("Submitting TestJob " + i + ", ctxt = "
+                            + ctxt.toString());
                 }
 
-                SHA1Job job = new SHA1Job(secid,
-                        new UnitActivityContext("test"), inputFile, i,
+                SHA1Job job = new SHA1Job(secid, ctxt, inputFile, i,
                         b.getOffset(), b.getLength());
 
                 cn.submit(job);
@@ -244,7 +360,8 @@ public class ConstellationMaster {
                 System.out.println("  " + result.getBlock() + " FAILED");
             } else {
                 System.out.println("  " + result.getBlock() + " "
-                        + SHA1toString(result.getSHA1()));
+                        + SHA1toString(result.getSHA1()) + ", took "
+                        + result.getTime() + " ms.");
             }
         }
 

@@ -61,6 +61,9 @@ public class SHA1Job extends SimpleActivity {
 
         logger.info("Running SHA1Job " + file + " " + blockIndex + " " + offset
                 + " " + length);
+        logger.info(
+                "Executor context = " + getExecutor().getContext().toString());
+        logger.info("Activity context = " + getContext().toString());
 
         // Create a buffer for the input data
         byte[] buffer = new byte[BUFFERSIZE];
@@ -103,7 +106,7 @@ public class SHA1Job extends SimpleActivity {
                     + " ms");
 
             getExecutor().send(new Event(identifier(), getParent(),
-                    new SHA1Result(file, blockIndex, digest)));
+                    new SHA1Result(file, blockIndex, digest, end - start)));
 
         } catch (Throwable e) {
             logger.error("SHA1Job " + file + " " + blockIndex + " " + offset
