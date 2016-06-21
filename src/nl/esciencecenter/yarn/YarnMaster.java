@@ -188,6 +188,7 @@ public class YarnMaster {
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
                                 + " -Xmx256M" + " " + jvmOpts
+                                + " -Dlog4j.configuration=file:./dist/log4j.properties"
                                 + " -Dyarn.constellation.rack=" + rack + " "
                                 + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
