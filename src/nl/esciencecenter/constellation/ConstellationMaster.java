@@ -100,7 +100,7 @@ public class ConstellationMaster {
                     new UnitExecutorContext("master"), st, st, st);
         }
 
-        Properties p = new Properties();
+        Properties p = new Properties(System.getProperties());
         p.put("ibis.constellation.master", "true");
         p.put("ibis.pool.name", "test");
         p.put("ibis.server.address", address);

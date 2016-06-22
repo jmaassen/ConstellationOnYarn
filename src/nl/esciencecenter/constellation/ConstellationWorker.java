@@ -85,7 +85,7 @@ public class ConstellationWorker {
                         ctxt, st, st, st);
             }
 
-            Properties p = new Properties();
+            Properties p = new Properties(System.getProperties());
             p.put("ibis.constellation.master", "false");
 
             Constellation cn = ConstellationFactory.createConstellation(p, e);
