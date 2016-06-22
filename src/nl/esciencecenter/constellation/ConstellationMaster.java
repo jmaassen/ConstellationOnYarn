@@ -109,6 +109,7 @@ public class ConstellationMaster {
         p.put("ibis.constellation.master", "true");
         p.put("ibis.pool.name", "test");
         p.put("ibis.server.address", address);
+        p.put("ibis.constellation.stealing", "mw");
 
         cn = ConstellationFactory.createConstellation(p, e);
         cn.activate();

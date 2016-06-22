@@ -87,6 +87,7 @@ public class ConstellationWorker {
 
             Properties p = new Properties(System.getProperties());
             p.put("ibis.constellation.master", "false");
+            p.put("ibis.constellation.stealing", "mw");
 
             Constellation cn = ConstellationFactory.createConstellation(p, e);
             cn.activate();
