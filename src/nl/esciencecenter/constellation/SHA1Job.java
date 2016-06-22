@@ -105,7 +105,7 @@ public class SHA1Job extends SimpleActivity {
                     + " " + length + " successful and took " + (end - start)
                     + " ms");
 
-            getExecutor().send(new Event(identifier(), getParent(),
+            send(new Event(identifier(), getParent(),
                     new SHA1Result(file, blockIndex, digest, end - start)));
 
         } catch (Throwable e) {
