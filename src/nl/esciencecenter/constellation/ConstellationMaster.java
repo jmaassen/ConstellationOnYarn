@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.CTimer;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationCreationException;
 import ibis.constellation.ConstellationFactory;
@@ -75,6 +76,10 @@ public class ConstellationMaster {
     private FileSystem fs;
 
     private String address;
+
+    private CTimer overallTimer;
+
+    private int eventNo;
 
     public ConstellationMaster(FileSystem fs) {
         this.fs = fs;
@@ -291,6 +296,9 @@ public class ConstellationMaster {
                 locs == null ? 0 : locs.length);
         secid = cn.submit(sec);
 
+        overallTimer = cn.getOverallTimer();
+        eventNo = overallTimer.start();
+
         // Generate a Job for each block
         if (locs != null) {
             UnitActivityContext anyCtxt = new UnitActivityContext("any");
@@ -349,6 +357,8 @@ public class ConstellationMaster {
     public void waitForJobs() throws Exception {
 
         Event[] events = sec.waitForEvents();
+
+        overallTimer.stop(eventNo);
 
         System.out.println("Results: ");
 
