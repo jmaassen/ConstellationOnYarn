@@ -189,6 +189,7 @@ public class YarnMaster {
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
                                 + " -Xmx256M" + " " + jvmOpts
                                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
+                                + " -Dibis.constellation.profile=true"
                                 + " -Dyarn.constellation.rack=" + rack + " "
                                 + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
