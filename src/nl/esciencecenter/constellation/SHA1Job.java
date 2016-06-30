@@ -81,17 +81,26 @@ public class SHA1Job extends SimpleActivity {
                 throw new Exception("Could not find input file!");
             }
 
-            FSDataInputStream in = fs.open(inputfile);
-            in.seek(offset);
+            FSDataInputStream in = null;
 
-            // Read the file and compute the SHA1 of this block
-            long pos = offset;
+            try {
+                in = fs.open(inputfile);
+                in.seek(offset);
 
-            while (pos < offset + length) {
-                int len = (int) Math.min(length - (pos - offset), BUFFERSIZE);
-                in.readFully(buffer, 0, len);
-                m.update(buffer, 0, len);
-                pos += len;
+                // Read the file and compute the SHA1 of this block
+                long pos = offset;
+
+                while (pos < offset + length) {
+                    int len = (int) Math.min(length - (pos - offset),
+                            BUFFERSIZE);
+                    in.readFully(buffer, 0, len);
+                    m.update(buffer, 0, len);
+                    pos += len;
+                }
+            } finally {
+                if (in != null) {
+                    in.close();
+                }
             }
 
             byte[] digest = m.digest();
