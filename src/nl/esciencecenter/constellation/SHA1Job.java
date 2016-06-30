@@ -83,6 +83,8 @@ public class SHA1Job extends SimpleActivity {
 
             FSDataInputStream in = null;
 
+            long totalReadNanos = 0;
+
             try {
                 in = fs.open(inputfile);
                 in.seek(offset);
@@ -93,7 +95,9 @@ public class SHA1Job extends SimpleActivity {
                 while (pos < offset + length) {
                     int len = (int) Math.min(length - (pos - offset),
                             BUFFERSIZE);
+                    long t1 = System.nanoTime();
                     in.readFully(buffer, 0, len);
+                    totalReadNanos += System.nanoTime() - t1;
                     m.update(buffer, 0, len);
                     pos += len;
                 }
@@ -103,7 +107,7 @@ public class SHA1Job extends SimpleActivity {
                 }
             }
 
-            long read = System.currentTimeMillis();
+            long read = totalReadNanos / 1000000;
 
             byte[] digest = m.digest();
 
@@ -111,10 +115,10 @@ public class SHA1Job extends SimpleActivity {
 
             logger.info("SHA1Job " + file + " " + offset + " " + length
                     + " successful and took " + (end - start) + " ms, of which "
-                    + (read - start) + " ms was spent reading");
+                    + read + " ms was spent reading");
 
             send(new Event(identifier(), getParent(), new SHA1Result(file,
-                    length, offset, digest, read - start, end - start)));
+                    length, offset, digest, read, end - start)));
 
         } catch (Throwable e) {
             logger.error("SHA1Job " + file + " " + offset + " " + length
