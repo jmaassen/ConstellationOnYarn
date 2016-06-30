@@ -136,8 +136,8 @@ public class YarnMaster {
 
         // Resource requirements for worker containers
         Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(256);
-        capability.setVirtualCores(1);
+        capability.setMemory(8192);
+        capability.setVirtualCores(16);
 
         // Make container requests to ResourceManager
         for (int i = 0; i < containerCount; ++i) {
@@ -187,7 +187,7 @@ public class YarnMaster {
                 }
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
-                                + " -Xmx256M" + " " + jvmOpts
+                                + " -Xmx8192M" + " " + jvmOpts
                                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
                                 + " -Dibis.constellation.profile=true"
                                 + " -Dyarn.constellation.rack=" + rack + " "
