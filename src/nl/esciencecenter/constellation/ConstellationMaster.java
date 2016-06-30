@@ -62,7 +62,7 @@ import ibis.util.TypedProperties;
  */
 public class ConstellationMaster {
 
-    public static final int MAXJOBSIZE = 1024 * 1024;
+    public static final int MAXJOBSIZE = 8 * 1024 * 1024;
 
     public static final Logger logger = LoggerFactory
             .getLogger(ConstellationMaster.class);
