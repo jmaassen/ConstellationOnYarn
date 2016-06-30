@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -60,6 +61,8 @@ import ibis.util.TypedProperties;
  * the results to come in.
  */
 public class ConstellationMaster {
+
+    public static final int MAXJOBSIZE = 1024 * 1024;
 
     public static final Logger logger = LoggerFactory
             .getLogger(ConstellationMaster.class);
@@ -231,9 +234,15 @@ public class ConstellationMaster {
         }
 
         // Get sorted lists of nodes and racks
-        ArrayList<Entry<String, Integer>> nodelist = getList(nodes);
-        ArrayList<Entry<String, Integer>> racklist = getList(racks);
+        List<Entry<String, Integer>> nodelist = getList(nodes);
+        List<Entry<String, Integer>> racklist = getList(racks);
 
+        if (nodelist.size() > 3) {
+            nodelist = nodelist.subList(0, 3);
+        }
+        if (racklist.size() > 3) {
+            racklist = racklist.subList(0, 3);
+        }
         // Create suitable or-context
         if (nodelist.size() + racklist.size() > 0) {
             UnitActivityContext[] ctxts = new UnitActivityContext[nodelist
@@ -330,10 +339,18 @@ public class ConstellationMaster {
                             + ctxt.toString());
                 }
 
-                SHA1Job job = new SHA1Job(secid, ctxt, inputFile, i,
-                        b.getOffset(), b.getLength());
+                long offset = b.getOffset();
+                long size = b.getLength();
 
-                cn.submit(job);
+                while (size > 0) {
+                    long sz = size > MAXJOBSIZE ? MAXJOBSIZE : size;
+
+                    SHA1Job job = new SHA1Job(secid, ctxt, inputFile, offset,
+                            sz);
+                    cn.submit(job);
+                    size -= sz;
+                    offset += sz;
+                }
             }
         }
     }
@@ -369,11 +386,13 @@ public class ConstellationMaster {
             SHA1Result result = (SHA1Result) e.data;
 
             if (result.hasFailed()) {
-                System.out.println("  " + result.getBlock() + " FAILED");
+                System.out.println("  " + result.getOffset() + " "
+                        + result.getSize() + " FAILED");
             } else {
-                System.out.println("  " + result.getBlock() + " "
-                        + SHA1toString(result.getSHA1()) + ", took "
-                        + result.getTime() + " ms.");
+                System.out.println(
+                        "  " + result.getOffset() + " " + result.getSize() + " "
+                                + SHA1toString(result.getSHA1()) + ", took "
+                                + result.getTime() + " ms.");
             }
         }
 
