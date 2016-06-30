@@ -303,8 +303,14 @@ public class ConstellationMaster {
         // Sumbit collector job here to collect replies
         logger.info("Submitting event collector");
 
-        sec = new MultiEventCollector(new UnitActivityContext("master"),
-                locs == null ? 0 : locs.length);
+        int nJobs = 0;
+        if (locs != null) {
+            for (BlockLocation loc : locs) {
+                nJobs += (loc.getLength() + MAXJOBSIZE - 1) / MAXJOBSIZE;
+            }
+        }
+
+        sec = new MultiEventCollector(new UnitActivityContext("master"), nJobs);
         secid = cn.submit(sec);
 
         overallTimer = cn.getOverallTimer();
@@ -314,9 +320,8 @@ public class ConstellationMaster {
         if (locs != null) {
             UnitActivityContext anyCtxt = new UnitActivityContext("any");
 
-            for (int i = 0; i < locs.length; i++) {
+            for (BlockLocation b : locs) {
                 ActivityContext ctxt = anyCtxt;
-                BlockLocation b = locs[i];
                 if (useSpecificContext) {
                     ctxt = getContext(new BlockLocation[] { b });
                 }
@@ -335,8 +340,7 @@ public class ConstellationMaster {
                     } catch (Throwable e) {
                         logger.error("Got exception in verbose", e);
                     }
-                    logger.info("Submitting TestJob " + i + ", ctxt = "
-                            + ctxt.toString());
+
                 }
 
                 long offset = b.getOffset();
@@ -347,6 +351,8 @@ public class ConstellationMaster {
 
                     SHA1Job job = new SHA1Job(secid, ctxt, inputFile, offset,
                             sz);
+                    logger.info("Submitting TestJob offset = " + offset
+                            + ", size = " + sz + ", ctxt = " + ctxt.toString());
                     cn.submit(job);
                     size -= sz;
                     offset += sz;
