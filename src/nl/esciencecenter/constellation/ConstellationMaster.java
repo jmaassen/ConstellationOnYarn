@@ -392,13 +392,13 @@ public class ConstellationMaster {
             SHA1Result result = (SHA1Result) e.data;
 
             if (result.hasFailed()) {
-                System.out.println("  " + result.getOffset() + " "
-                        + result.getSize() + " FAILED");
+                System.out.println(result.getOffset() + " " + result.getSize()
+                        + " FAILED");
             } else {
-                System.out.println(
-                        "  " + result.getOffset() + " " + result.getSize() + " "
-                                + SHA1toString(result.getSHA1()) + ", took "
-                                + result.getTime() + " ms.");
+                System.out.println(result.getOffset() + " " + result.getSize()
+                        + " " + SHA1toString(result.getSHA1()) + ", took "
+                        + result.getTime() + " ms., of which "
+                        + result.getReadTime() + " ms. in reading");
             }
         }
 

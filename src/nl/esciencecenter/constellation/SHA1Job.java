@@ -103,15 +103,18 @@ public class SHA1Job extends SimpleActivity {
                 }
             }
 
+            long read = System.currentTimeMillis();
+
             byte[] digest = m.digest();
 
             long end = System.currentTimeMillis();
 
             logger.info("SHA1Job " + file + " " + offset + " " + length
-                    + " successful and took " + (end - start) + " ms");
+                    + " successful and took " + (end - start) + " ms, of which "
+                    + (read - start) + " ms was spent reading");
 
-            send(new Event(identifier(), getParent(),
-                    new SHA1Result(file, length, offset, digest, end - start)));
+            send(new Event(identifier(), getParent(), new SHA1Result(file,
+                    length, offset, digest, read - start, end - start)));
 
         } catch (Throwable e) {
             logger.error("SHA1Job " + file + " " + offset + " " + length
