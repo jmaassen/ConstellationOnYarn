@@ -137,7 +137,7 @@ public class YarnMaster {
         // Resource requirements for worker containers
         Resource capability = Records.newRecord(Resource.class);
         capability.setMemory(8192);
-        capability.setVirtualCores(16);
+        capability.setVirtualCores(12);
 
         // Make container requests to ResourceManager
         for (int i = 0; i < containerCount; ++i) {
