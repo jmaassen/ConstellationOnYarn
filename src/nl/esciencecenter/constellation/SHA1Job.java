@@ -103,7 +103,11 @@ public class SHA1Job extends SimpleActivity {
                 }
             } finally {
                 if (in != null) {
-                    in.close();
+                    try {
+                        in.close();
+                    } catch (Throwable e) {
+                        // ignore
+                    }
                 }
             }
 
