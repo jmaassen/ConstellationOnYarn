@@ -100,7 +100,8 @@ public class ConstellationMaster {
         start = System.currentTimeMillis();
 
         // This exec should be a command line parameter or property ?
-        int exec = Runtime.getRuntime().availableProcessors();
+        // int exec = Runtime.getRuntime().availableProcessors();
+        int exec = 1;
 
         Executor[] e = new Executor[exec];
 
