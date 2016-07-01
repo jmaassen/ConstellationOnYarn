@@ -47,6 +47,8 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.util.ThreadPool;
+
 /**
  * Simple YARN ApplicationMaster containing the plumbing to starts workers on
  * YARN.
@@ -228,6 +230,27 @@ public class YarnMaster {
                 }
             }
         }
+
+        final int s = responseId;
+
+        // Create heartbeat thread
+        ThreadPool.createNew(new Runnable() {
+            @Override
+            public void run() {
+                for (;;) {
+                    try {
+                        Thread.sleep(60000);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                    try {
+                        rmClient.allocate(s);
+                    } catch (Throwable e) {
+                        // ignore
+                    }
+                }
+            }
+        }, "yarnmaster pinger");
     }
 
     /**
