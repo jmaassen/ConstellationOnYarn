@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -36,16 +37,19 @@ import org.slf4j.LoggerFactory;
 
 import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.CTimer;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationCreationException;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.Event;
 import ibis.constellation.Executor;
+import ibis.constellation.ExecutorContext;
 import ibis.constellation.MultiEventCollector;
 import ibis.constellation.SimpleExecutor;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
 import ibis.constellation.context.OrActivityContext;
+import ibis.constellation.context.OrExecutorContext;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
@@ -59,6 +63,8 @@ import ibis.util.TypedProperties;
  * the results to come in.
  */
 public class ConstellationMaster {
+
+    public static final int MAXJOBSIZE = 1024 * 1024 * 1024;
 
     public static final Logger logger = LoggerFactory
             .getLogger(ConstellationMaster.class);
@@ -76,6 +82,10 @@ public class ConstellationMaster {
 
     private String address;
 
+    private CTimer overallTimer;
+
+    private int eventNo;
+
     public ConstellationMaster(FileSystem fs) {
         this.fs = fs;
     }
@@ -89,21 +99,48 @@ public class ConstellationMaster {
 
         start = System.currentTimeMillis();
 
+        // This exec should be a command line parameter or property ?
+        // int exec = Runtime.getRuntime().availableProcessors();
         int exec = 1;
 
         Executor[] e = new Executor[exec];
 
         StealStrategy st = StealStrategy.ANY;
+        String[] myAddresses = ConstellationWorker.myHostNames();
+        String rack = System.getProperty("yarn.constellation.rack");
+        UnitExecutorContext rackContext = null;
+        if (rack != null && !"".equals(rack)) {
+            rackContext = new UnitExecutorContext(rack);
+        }
+        UnitExecutorContext[] ctxts = new UnitExecutorContext[myAddresses.length
+                + (rackContext != null ? 2 : 1)];
+        for (int i = 0; i < myAddresses.length; i++) {
+            ctxts[i] = new UnitExecutorContext(myAddresses[i]);
+        }
+        ctxts[ctxts.length - 1] = new UnitExecutorContext("any");
+        if (rackContext != null) {
+            ctxts[myAddresses.length] = rackContext;
+        }
+        ExecutorContext ctxt = ctxts.length == 1 ? ctxts[0]
+                : new OrExecutorContext(ctxts, true);
 
-        for (int i = 0; i < exec; i++) {
-            e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
-                    new UnitExecutorContext("master"), st, st, st);
+        logger.info("Executor context = " + ctxt.toString());
+
+        for (int i = 1; i < exec; i++) {
+            e[i] = new SimpleExecutor(StealPool.NONE, StealPool.WORLD, ctxt, st,
+                    st, st);
         }
 
-        Properties p = new Properties();
+        e[0] = new SimpleExecutor(StealPool.WORLD, StealPool.NONE,
+                new UnitExecutorContext("master"), st, st, st);
+
+        Properties p = new Properties(System.getProperties());
+
         p.put("ibis.constellation.master", "true");
         p.put("ibis.pool.name", "test");
         p.put("ibis.server.address", address);
+        p.put("ibis.constellation.stealing", "mw");
+        p.put("ibis.constellation.profile", "true");
 
         cn = ConstellationFactory.createConstellation(p, e);
         cn.activate();
@@ -224,9 +261,15 @@ public class ConstellationMaster {
         }
 
         // Get sorted lists of nodes and racks
-        ArrayList<Entry<String, Integer>> nodelist = getList(nodes);
-        ArrayList<Entry<String, Integer>> racklist = getList(racks);
+        List<Entry<String, Integer>> nodelist = getList(nodes);
+        List<Entry<String, Integer>> racklist = getList(racks);
 
+        if (nodelist.size() > 3) {
+            nodelist = nodelist.subList(0, 3);
+        }
+        if (racklist.size() > 3) {
+            racklist = racklist.subList(0, 3);
+        }
         // Create suitable or-context
         if (nodelist.size() + racklist.size() > 0) {
             UnitActivityContext[] ctxts = new UnitActivityContext[nodelist
@@ -287,17 +330,25 @@ public class ConstellationMaster {
         // Sumbit collector job here to collect replies
         logger.info("Submitting event collector");
 
-        sec = new MultiEventCollector(new UnitActivityContext("master"),
-                locs == null ? 0 : locs.length);
+        int nJobs = 0;
+        if (locs != null) {
+            for (BlockLocation loc : locs) {
+                nJobs += (loc.getLength() + MAXJOBSIZE - 1) / MAXJOBSIZE;
+            }
+        }
+
+        sec = new MultiEventCollector(new UnitActivityContext("master"), nJobs);
         secid = cn.submit(sec);
+
+        overallTimer = cn.getOverallTimer();
+        eventNo = overallTimer.start();
 
         // Generate a Job for each block
         if (locs != null) {
             UnitActivityContext anyCtxt = new UnitActivityContext("any");
 
-            for (int i = 0; i < locs.length; i++) {
+            for (BlockLocation b : locs) {
                 ActivityContext ctxt = anyCtxt;
-                BlockLocation b = locs[i];
                 if (useSpecificContext) {
                     ctxt = getContext(new BlockLocation[] { b });
                 }
@@ -316,14 +367,23 @@ public class ConstellationMaster {
                     } catch (Throwable e) {
                         logger.error("Got exception in verbose", e);
                     }
-                    logger.info("Submitting TestJob " + i + ", ctxt = "
-                            + ctxt.toString());
+
                 }
 
-                SHA1Job job = new SHA1Job(secid, ctxt, inputFile, i,
-                        b.getOffset(), b.getLength());
+                long offset = b.getOffset();
+                long size = b.getLength();
 
-                cn.submit(job);
+                while (size > 0) {
+                    long sz = size > MAXJOBSIZE ? MAXJOBSIZE : size;
+
+                    SHA1Job job = new SHA1Job(secid, ctxt, inputFile, offset,
+                            sz);
+                    logger.info("Submitting TestJob offset = " + offset
+                            + ", size = " + sz + ", ctxt = " + ctxt.toString());
+                    cn.submit(job);
+                    size -= sz;
+                    offset += sz;
+                }
             }
         }
     }
@@ -350,6 +410,8 @@ public class ConstellationMaster {
 
         Event[] events = sec.waitForEvents();
 
+        overallTimer.stop(eventNo);
+
         System.out.println("Results: ");
 
         for (Event e : events) {
@@ -357,11 +419,13 @@ public class ConstellationMaster {
             SHA1Result result = (SHA1Result) e.data;
 
             if (result.hasFailed()) {
-                System.out.println("  " + result.getBlock() + " FAILED");
+                System.out.println(result.getOffset() + " " + result.getSize()
+                        + " FAILED");
             } else {
-                System.out.println("  " + result.getBlock() + " "
-                        + SHA1toString(result.getSHA1()) + ", took "
-                        + result.getTime() + " ms.");
+                System.out.println(result.getOffset() + " " + result.getSize()
+                        + " " + SHA1toString(result.getSHA1()) + ", took "
+                        + result.getTime() + " ms., of which "
+                        + result.getReadTime() + " ms. in reading");
             }
         }
 

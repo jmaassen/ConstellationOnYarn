@@ -47,6 +47,8 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.util.ThreadPool;
+
 /**
  * Simple YARN ApplicationMaster containing the plumbing to starts workers on
  * YARN.
@@ -136,8 +138,8 @@ public class YarnMaster {
 
         // Resource requirements for worker containers
         Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(256);
-        capability.setVirtualCores(1);
+        capability.setMemory(8192);
+        capability.setVirtualCores(12);
 
         // Make container requests to ResourceManager
         for (int i = 0; i < containerCount; ++i) {
@@ -170,6 +172,13 @@ public class YarnMaster {
                 // Launch container by create ContainerLaunchContext
                 ContainerLaunchContext ctx = Records
                         .newRecord(ContainerLaunchContext.class);
+                Resource c = container.getResource();
+                if (logger.isInfoEnabled()) {
+                    logger.info(
+                            "Container id = " + container.getId().toString());
+                    logger.info("VirtualCores = " + c.getVirtualCores());
+                    logger.info("Memory = " + c.getMemory());
+                }
 
                 if (logger.isDebugEnabled()) {
                     logger.debug("Starting container on : "
@@ -187,8 +196,9 @@ public class YarnMaster {
                 }
                 List<String> commands = Collections
                         .singletonList(Environment.JAVA_HOME.$$() + "/bin/java"
-                                + " -Xmx256M" + " " + jvmOpts
+                                + " -Xmx8192M" + " " + jvmOpts
                                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
+                                + " -Dibis.constellation.profile=true"
                                 + " -Dyarn.constellation.rack=" + rack + " "
                                 + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
@@ -222,6 +232,27 @@ public class YarnMaster {
                 }
             }
         }
+
+        final int s = responseId;
+
+        // Create heartbeat thread
+        ThreadPool.createNew(new Runnable() {
+            @Override
+            public void run() {
+                for (;;) {
+                    try {
+                        Thread.sleep(60000);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                    try {
+                        rmClient.allocate(s);
+                    } catch (Throwable e) {
+                        // ignore
+                    }
+                }
+            }
+        }, "yarnmaster pinger");
     }
 
     /**

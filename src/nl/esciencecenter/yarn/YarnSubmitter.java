@@ -80,10 +80,10 @@ public class YarnSubmitter {
 
         // Set up the container launch context for the application master
         List<String> cmd = Collections.singletonList(Environment.JAVA_HOME.$$()
-                + "/bin/java" + " -Xmx64M"
-                + " -Dlog4j.configuration=file:./dist/log4j.properties" + " "
-                + mainClass + " " + hdfsRoot + " " + libPath + " "
-                + applicationOptions + " 1>"
+                + "/bin/java" + " -Xmx8192M"
+                + " -Dlog4j.configuration=file:./dist/log4j.properties"
+                + " -Dibis.constellation.profile=true" + " " + mainClass + " "
+                + hdfsRoot + " " + libPath + " " + applicationOptions + " 1>"
                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.stdout"
                 + " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
                 + "/master.stderr");
@@ -98,11 +98,12 @@ public class YarnSubmitter {
         ApplicationSubmissionContext appContext = app
                 .getApplicationSubmissionContext();
         appId = appContext.getApplicationId();
+        appContext.setMaxAppAttempts(1); // only try once.
 
         // Set up resource type requirements for ApplicationMaster
         Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(64);
-        capability.setVirtualCores(1);
+        capability.setMemory(8192);
+        capability.setVirtualCores(12);
         appContext.setResource(capability);
         appContext.setApplicationName("ConstellationOnYarn"); // application
                                                               // name

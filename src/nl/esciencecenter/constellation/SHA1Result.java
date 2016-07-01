@@ -27,35 +27,44 @@ public class SHA1Result implements Serializable {
     private static final long serialVersionUID = -1475352090350923307L;
 
     private final String file;
-    private final int block;
+    private final long size;
+    private final long offset;
     private final byte[] SHA1;
     private final long time;
+    private final long readTime;
     private final Throwable e;
 
-    private SHA1Result(String file, int block, byte[] sha1, long time,
-            Throwable e) {
+    private SHA1Result(String file, long size, long offset, byte[] sha1,
+            long time, long readTime, Throwable e) {
         this.file = file;
-        this.block = block;
         this.SHA1 = sha1;
         this.time = time;
+        this.readTime = readTime;
+        this.size = size;
+        this.offset = offset;
         this.e = e;
 
     }
 
-    public SHA1Result(String file, int block, byte[] sha1, long time) {
-        this(file, block, sha1, time, null);
+    public SHA1Result(String file, long size, long offset, byte[] sha1,
+            long readTime, long time) {
+        this(file, size, offset, sha1, time, readTime, null);
     }
 
-    public SHA1Result(String file, int block, Throwable e) {
-        this(file, block, null, 0, e);
+    public SHA1Result(String file, long size, long offset, Throwable e) {
+        this(file, size, offset, null, 0, 0, e);
     }
 
     public String getFile() {
         return file;
     }
 
-    public int getBlock() {
-        return block;
+    public long getOffset() {
+        return offset;
+    }
+
+    public long getSize() {
+        return size;
     }
 
     public byte[] getSHA1() {
@@ -72,5 +81,9 @@ public class SHA1Result implements Serializable {
 
     public long getTime() {
         return time;
+    }
+
+    public long getReadTime() {
+        return readTime;
     }
 }

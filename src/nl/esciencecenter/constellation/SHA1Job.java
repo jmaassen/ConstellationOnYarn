@@ -32,7 +32,7 @@ import ibis.constellation.Event;
 import ibis.constellation.SimpleActivity;
 
 /**
- * Simple test job that computes a SHA1 hash of a single block in an input file.
+ * Simple test job that computes a SHA1 hash of a specified chunk of a file.
  */
 public class SHA1Job extends SimpleActivity {
 
@@ -43,15 +43,13 @@ public class SHA1Job extends SimpleActivity {
     private final static int BUFFERSIZE = 64 * 1024;
 
     private final String file;
-    private final int blockIndex;
     private final long offset;
     private final long length;
 
     public SHA1Job(ActivityIdentifier parent, ActivityContext context,
-            String file, int blockIndex, long offset, long length) {
+            String file, long offset, long length) {
         super(parent, context);
         this.file = file;
-        this.blockIndex = blockIndex;
         this.offset = offset;
         this.length = length;
     }
@@ -59,8 +57,7 @@ public class SHA1Job extends SimpleActivity {
     @Override
     public void simpleActivity() {
 
-        logger.info("Running SHA1Job " + file + " " + blockIndex + " " + offset
-                + " " + length);
+        logger.info("Running SHA1Job " + file + " " + offset + " " + length);
         logger.info(
                 "Executor context = " + getExecutor().getContext().toString());
         logger.info("Activity context = " + getContext().toString());
@@ -84,36 +81,55 @@ public class SHA1Job extends SimpleActivity {
                 throw new Exception("Could not find input file!");
             }
 
-            FSDataInputStream in = fs.open(inputfile);
-            in.seek(offset);
+            FSDataInputStream in = null;
 
-            // Read the file and compute the SHA1 of this block
-            long pos = offset;
+            long totalReadNanos = 0;
 
-            while (pos < offset + length) {
-                int len = (int) Math.min(length - (pos - offset), BUFFERSIZE);
-                in.readFully(buffer, 0, len);
-                m.update(buffer, 0, len);
-                pos += len;
+            try {
+                in = fs.open(inputfile);
+                in.seek(offset);
+
+                // Read the file and compute the SHA1 of this block
+                long pos = offset;
+
+                while (pos < offset + length) {
+                    int len = (int) Math.min(length - (pos - offset),
+                            BUFFERSIZE);
+                    long t1 = System.nanoTime();
+                    in.readFully(buffer, 0, len);
+                    totalReadNanos += System.nanoTime() - t1;
+                    m.update(buffer, 0, len);
+                    pos += len;
+                }
+            } finally {
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (Throwable e) {
+                        // ignore
+                    }
+                }
             }
+
+            long read = totalReadNanos / 1000000;
 
             byte[] digest = m.digest();
 
             long end = System.currentTimeMillis();
 
-            logger.info("SHA1Job " + file + " " + blockIndex + " " + offset
-                    + " " + length + " successful and took " + (end - start)
-                    + " ms");
+            logger.info("SHA1Job " + file + " " + offset + " " + length
+                    + " successful and took " + (end - start) + " ms, of which "
+                    + read + " ms was spent reading");
 
-            getExecutor().send(new Event(identifier(), getParent(),
-                    new SHA1Result(file, blockIndex, digest, end - start)));
+            send(new Event(identifier(), getParent(), new SHA1Result(file,
+                    length, offset, digest, read, end - start)));
 
         } catch (Throwable e) {
-            logger.error("SHA1Job " + file + " " + blockIndex + " " + offset
-                    + " " + length + " failed.", e);
+            logger.error("SHA1Job " + file + " " + offset + " " + length
+                    + " failed.", e);
 
             getExecutor().send(new Event(identifier(), getParent(),
-                    new SHA1Result(file, blockIndex, e)));
+                    new SHA1Result(file, length, offset, e)));
         } finally {
             try {
                 fs.close();

@@ -55,7 +55,7 @@ public class ConstellationWorker {
             long start = System.currentTimeMillis();
 
             // This exec should be a command line parameter or property ?
-            int exec = 1;
+            int exec = Runtime.getRuntime().availableProcessors();
 
             Executor[] e = new Executor[exec];
 
@@ -81,12 +81,14 @@ public class ConstellationWorker {
             logger.info("Executor context = " + ctxt.toString());
 
             for (int i = 0; i < exec; i++) {
-                e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
-                        ctxt, st, st, st);
+                e[i] = new SimpleExecutor(StealPool.NONE, StealPool.WORLD, ctxt,
+                        st, st, st);
             }
 
-            Properties p = new Properties();
+            Properties p = new Properties(System.getProperties());
             p.put("ibis.constellation.master", "false");
+            p.put("ibis.constellation.stealing", "mw");
+            p.put("ibis.constellation.profile", "true");
 
             Constellation cn = ConstellationFactory.createConstellation(p, e);
             cn.activate();
@@ -109,7 +111,7 @@ public class ConstellationWorker {
         }
     }
 
-    private static String[] myHostNames() {
+    public static String[] myHostNames() {
         try {
             InetAddress[] addresses = IPUtils.getLocalHostAddresses();
             String[] result = new String[addresses.length];
