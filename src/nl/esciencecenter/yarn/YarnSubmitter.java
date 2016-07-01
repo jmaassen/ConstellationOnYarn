@@ -102,7 +102,7 @@ public class YarnSubmitter {
         // Set up resource type requirements for ApplicationMaster
         Resource capability = Records.newRecord(Resource.class);
         capability.setMemory(8192);
-        capability.setVirtualCores(1);
+        capability.setVirtualCores(12);
         appContext.setResource(capability);
         appContext.setApplicationName("ConstellationOnYarn"); // application
                                                               // name
