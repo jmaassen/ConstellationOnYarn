@@ -43,11 +43,13 @@ import ibis.constellation.ConstellationCreationException;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.Event;
 import ibis.constellation.Executor;
+import ibis.constellation.ExecutorContext;
 import ibis.constellation.MultiEventCollector;
 import ibis.constellation.SimpleExecutor;
 import ibis.constellation.StealPool;
 import ibis.constellation.StealStrategy;
 import ibis.constellation.context.OrActivityContext;
+import ibis.constellation.context.OrExecutorContext;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.context.UnitExecutorContext;
 import ibis.ipl.server.Server;
@@ -97,18 +99,42 @@ public class ConstellationMaster {
 
         start = System.currentTimeMillis();
 
-        int exec = 1;
+        // This exec should be a command line parameter or property ?
+        int exec = Runtime.getRuntime().availableProcessors();
 
         Executor[] e = new Executor[exec];
 
         StealStrategy st = StealStrategy.ANY;
+        String[] myAddresses = ConstellationWorker.myHostNames();
+        String rack = System.getProperty("yarn.constellation.rack");
+        UnitExecutorContext rackContext = null;
+        if (rack != null && !"".equals(rack)) {
+            rackContext = new UnitExecutorContext(rack);
+        }
+        UnitExecutorContext[] ctxts = new UnitExecutorContext[myAddresses.length
+                + (rackContext != null ? 2 : 1)];
+        for (int i = 0; i < myAddresses.length; i++) {
+            ctxts[i] = new UnitExecutorContext(myAddresses[i]);
+        }
+        ctxts[ctxts.length - 1] = new UnitExecutorContext("any");
+        if (rackContext != null) {
+            ctxts[myAddresses.length] = rackContext;
+        }
+        ExecutorContext ctxt = ctxts.length == 1 ? ctxts[0]
+                : new OrExecutorContext(ctxts, true);
 
-        for (int i = 0; i < exec; i++) {
-            e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
-                    new UnitExecutorContext("master"), st, st, st);
+        logger.info("Executor context = " + ctxt.toString());
+
+        for (int i = 1; i < exec; i++) {
+            e[i] = new SimpleExecutor(StealPool.NONE, StealPool.WORLD, ctxt, st,
+                    st, st);
         }
 
+        e[0] = new SimpleExecutor(StealPool.WORLD, StealPool.NONE,
+                new UnitExecutorContext("master"), st, st, st);
+
         Properties p = new Properties(System.getProperties());
+
         p.put("ibis.constellation.master", "true");
         p.put("ibis.pool.name", "test");
         p.put("ibis.server.address", address);

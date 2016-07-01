@@ -81,8 +81,8 @@ public class ConstellationWorker {
             logger.info("Executor context = " + ctxt.toString());
 
             for (int i = 0; i < exec; i++) {
-                e[i] = new SimpleExecutor(StealPool.WORLD, StealPool.WORLD,
-                        ctxt, st, st, st);
+                e[i] = new SimpleExecutor(StealPool.NONE, StealPool.WORLD, ctxt,
+                        st, st, st);
             }
 
             Properties p = new Properties(System.getProperties());
@@ -111,7 +111,7 @@ public class ConstellationWorker {
         }
     }
 
-    private static String[] myHostNames() {
+    public static String[] myHostNames() {
         try {
             InetAddress[] addresses = IPUtils.getLocalHostAddresses();
             String[] result = new String[addresses.length];
