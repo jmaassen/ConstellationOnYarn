@@ -174,6 +174,8 @@ public class YarnMaster {
                         .newRecord(ContainerLaunchContext.class);
                 Resource c = container.getResource();
                 if (logger.isInfoEnabled()) {
+                    logger.info(
+                            "Container id = " + container.getId().toString());
                     logger.info("VirtualCores = " + c.getVirtualCores());
                     logger.info("Memory = " + c.getMemory());
                 }
