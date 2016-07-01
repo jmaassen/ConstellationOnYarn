@@ -98,6 +98,7 @@ public class YarnSubmitter {
         ApplicationSubmissionContext appContext = app
                 .getApplicationSubmissionContext();
         appId = appContext.getApplicationId();
+        appContext.setMaxAppAttempts(1); // only try once.
 
         // Set up resource type requirements for ApplicationMaster
         Resource capability = Records.newRecord(Resource.class);
