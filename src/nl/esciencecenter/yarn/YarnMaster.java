@@ -170,6 +170,11 @@ public class YarnMaster {
                 // Launch container by create ContainerLaunchContext
                 ContainerLaunchContext ctx = Records
                         .newRecord(ContainerLaunchContext.class);
+                Resource c = container.getResource();
+                if (logger.isInfoEnabled()) {
+                    logger.info("VirtualCores = " + c.getVirtualCores());
+                    logger.info("Memory = " + c.getMemory());
+                }
 
                 if (logger.isDebugEnabled()) {
                     logger.debug("Starting container on : "
