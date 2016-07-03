@@ -69,6 +69,14 @@ public class YarnSubmitter {
         YarnClientApplication app = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
         ApplicationId id = appResponse.getApplicationId();
+        Resource max = appResponse.getMaximumResourceCapability();
+        int maxMem = max.getMemory();
+        logger.info(
+                "Max mem capabililty of resources in this cluster " + maxMem);
+
+        int maxVCores = max.getVirtualCores();
+        logger.info("Max vcores capabililty of resources in this cluster "
+                + maxVCores);
 
         logger.info("Connected to YARN with application ID: " + id);
 
@@ -80,7 +88,7 @@ public class YarnSubmitter {
 
         // Set up the container launch context for the application master
         List<String> cmd = Collections.singletonList(Environment.JAVA_HOME.$$()
-                + "/bin/java" + " -Xmx8192M"
+                + "/bin/java" + " -Xmx" + maxMem + "M"
                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
                 + " -Dibis.constellation.profile=true" + " " + mainClass + " "
                 + hdfsRoot + " " + libPath + " " + applicationOptions + " 1>"
@@ -102,8 +110,11 @@ public class YarnSubmitter {
 
         // Set up resource type requirements for ApplicationMaster
         Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(8192);
-        capability.setVirtualCores(12);
+
+        // Ask everything we can get ...
+        capability.setMemory(maxMem);
+        capability.setVirtualCores(maxVCores);
+
         appContext.setResource(capability);
         appContext.setApplicationName("ConstellationOnYarn"); // application
                                                               // name

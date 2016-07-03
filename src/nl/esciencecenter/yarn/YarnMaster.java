@@ -150,12 +150,7 @@ public class YarnMaster {
         // Resource requirements for worker containers
         Resource capability = Records.newRecord(Resource.class);
 
-        if (8192 < maxMem) {
-            maxMem = 8192;
-        }
-        if (12 < maxVCores) {
-            maxVCores = 12;
-        }
+        // Ask everything we can, to make sure we get a complete node.
         capability.setMemory(maxMem);
         capability.setVirtualCores(maxVCores);
 
