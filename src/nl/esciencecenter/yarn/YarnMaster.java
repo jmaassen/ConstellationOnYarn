@@ -30,6 +30,7 @@ import org.apache.hadoop.net.Node;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
+import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -130,7 +131,17 @@ public class YarnMaster {
         nmClient.start();
 
         // Register with ResourceManager
-        rmClient.registerApplicationMaster("", 0, "");
+        RegisterApplicationMasterResponse mresponse = rmClient
+                .registerApplicationMaster("", 0, "");
+
+        int maxMem = mresponse.getMaximumResourceCapability().getMemory();
+        logger.info(
+                "Max mem capabililty of resources in this cluster " + maxMem);
+
+        int maxVCores = mresponse.getMaximumResourceCapability()
+                .getVirtualCores();
+        logger.info("Max vcores capabililty of resources in this cluster "
+                + maxVCores);
 
         // Priority for worker containers - priorities are intra-application
         Priority priority = Records.newRecord(Priority.class);
@@ -138,8 +149,10 @@ public class YarnMaster {
 
         // Resource requirements for worker containers
         Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(8192);
-        capability.setVirtualCores(12);
+
+        // Ask everything we can, to make sure we get a complete node.
+        capability.setMemory(maxMem);
+        capability.setVirtualCores(maxVCores);
 
         // Make container requests to ResourceManager
         for (int i = 0; i < containerCount; ++i) {
