@@ -46,6 +46,7 @@ public class ApplicationMaster {
         String inputFile = args[2];
         String flag = args[3];
         int containerCount = Integer.parseInt(args[4]);
+        String execCount = args.length > 5 ? args[5] : "";
 
         try {
             YarnMaster m = new YarnMaster(hdfsRoot, libPath, containerCount);
@@ -55,7 +56,8 @@ public class ApplicationMaster {
             c.initialize();
 
             m.startWorkers(c.getJVMOpts(),
-                    "nl.esciencecenter.constellation.ConstellationWorker", "");
+                    "nl.esciencecenter.constellation.ConstellationWorker",
+                    execCount);
 
             c.submitJobs(inputFile, flag);
             c.waitForJobs();
