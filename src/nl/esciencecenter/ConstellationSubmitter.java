@@ -58,12 +58,14 @@ public class ConstellationSubmitter {
         String inputFile = args[2];
         String flag = args[3];
         int workerCount = args.length > 4 ? Integer.parseInt(args[4]) : 1;
+        String execCount = args.length > 5 ? args[5] : "";
 
         try {
             YarnSubmitter ys = new YarnSubmitter(hdfsRoot, libPath);
             ys.stageIn();
             ys.submitApplicationMaster("nl.esciencecenter.ApplicationMaster",
-                    inputFile + " " + flag + " " + workerCount);
+                    inputFile + " " + flag + " " + workerCount + " "
+                            + execCount);
             ys.waitForApplication();
             ys.cleanup();
         } catch (Exception e) {
