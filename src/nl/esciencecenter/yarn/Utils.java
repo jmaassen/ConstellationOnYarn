@@ -170,7 +170,7 @@ public class Utils {
     }
 
     /**
-     * Add each file it the specified directory on HDFS to localResources. Any
+     * Add each file in the specified directory on HDFS to localResources. Any
      * subdirectories will be skipped.
      *
      * The directory should be specified relative to the hdfsRoot. For example,
@@ -270,5 +270,22 @@ public class Utils {
         }
 
         return classPathEnv.toString();
+    }
+
+    public static void removeHDFSDir(FileSystem fs, String dir, String hdfsRoot)
+            throws IOException {
+        Path p = new Path(hdfsRoot, dir);
+
+        if (!fs.exists(p)) {
+            logger.warn("Cannot remove dir " + dir + " (not found)");
+            return;
+        }
+
+        if (!fs.isDirectory(p)) {
+            logger.warn("Cannot remove dir " + dir + " (not a dir)");
+            return;
+        }
+
+        fs.delete(p, true);
     }
 }

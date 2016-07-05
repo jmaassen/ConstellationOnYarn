@@ -55,7 +55,9 @@ public class ConstellationWorker {
             long start = System.currentTimeMillis();
 
             // This exec should be a command line parameter or property ?
-            int exec = Runtime.getRuntime().availableProcessors();
+            int exec = args.length == 0
+                    ? Runtime.getRuntime().availableProcessors()
+                    : Integer.parseInt(args[0]);
 
             Executor[] e = new Executor[exec];
 

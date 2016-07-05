@@ -158,5 +158,6 @@ public class YarnSubmitter {
 
     public void cleanup() throws IOException {
         yarnClient.close();
+        Utils.removeHDFSDir(fs, libPath, hdfsRoot);
     }
 }
