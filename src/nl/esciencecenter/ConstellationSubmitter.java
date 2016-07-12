@@ -63,9 +63,14 @@ public class ConstellationSubmitter {
         try {
             YarnSubmitter ys = new YarnSubmitter(hdfsRoot, libPath);
             ys.stageIn();
+            logger.info("HDFS root = " + hdfsRoot);
+            logger.info("Inputfile = " + inputFile);
+            logger.info("Use specific contexts = " + flag);
+            logger.info("WorkerCount = " + workerCount);
+            logger.info("execCount = " + ("".equals(execCount) ? "default" : execCount));
             ys.submitApplicationMaster("nl.esciencecenter.ApplicationMaster",
                     inputFile + " " + flag + " " + workerCount + " "
-                            + execCount);
+                            + execCount, workerCount);
             ys.waitForApplication();
             ys.cleanup();
         } catch (Exception e) {

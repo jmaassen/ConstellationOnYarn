@@ -53,12 +53,12 @@ public class ApplicationMaster {
             m.stageIn();
 
             ConstellationMaster c = new ConstellationMaster(m.getFileSystem());
-            c.initialize();
 
             m.startWorkers(c.getJVMOpts(),
                     "nl.esciencecenter.constellation.ConstellationWorker",
                     execCount);
 
+            c.initialize();
             c.submitJobs(inputFile, flag);
             c.waitForJobs();
             c.cleanup();
