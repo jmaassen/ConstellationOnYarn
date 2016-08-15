@@ -69,7 +69,7 @@ public class ConstellationMaster {
     public static final Logger logger = LoggerFactory
             .getLogger(ConstellationMaster.class);
 
-    private Server server;
+    private final Server server;
 
     private Constellation cn;
     private MultiEventCollector sec;
@@ -80,14 +80,22 @@ public class ConstellationMaster {
 
     private FileSystem fs;
 
-    private String address;
+    private final String address;
 
     private CTimer overallTimer;
 
     private int eventNo;
 
-    public ConstellationMaster(FileSystem fs) {
+    public ConstellationMaster(FileSystem fs) throws Exception {
         this.fs = fs;
+        // Start an Ibis server here, to serve the pool of constellations.
+        TypedProperties properties = new TypedProperties();
+        properties.putAll(System.getProperties());
+
+        server = new Server(properties);
+        address = server.getAddress();
+
+        logger.info("Started server at: " + address);
     }
 
     // Start a local Constellation using a single executor only used to gather
@@ -136,11 +144,11 @@ public class ConstellationMaster {
 
         Properties p = new Properties(System.getProperties());
 
-        p.put("ibis.constellation.master", "true");
-        p.put("ibis.pool.name", "test");
-        p.put("ibis.server.address", address);
-        p.put("ibis.constellation.stealing", "mw");
-        p.put("ibis.constellation.profile", "true");
+        p.setProperty("ibis.constellation.master", "true");
+        p.setProperty("ibis.pool.name", "test");
+        p.setProperty("ibis.server.address", address);
+        p.setProperty("ibis.constellation.stealing", "mw");
+        p.setProperty("ibis.constellation.profile", "true");
 
         cn = ConstellationFactory.createConstellation(p, e);
         cn.activate();
@@ -156,15 +164,6 @@ public class ConstellationMaster {
      * @throws Exception
      */
     public void initialize() throws Exception {
-
-        // Start an Ibis server here, to serve the pool of constellations.
-        TypedProperties properties = new TypedProperties();
-        properties.putAll(System.getProperties());
-
-        server = new Server(properties);
-        address = server.getAddress();
-
-        logger.info("Started server at: " + address);
 
         // Start a Constellation here that only serves as a source of jobs and
         // sink of results.

@@ -63,7 +63,7 @@ public class YarnSubmitter {
     }
 
     public void submitApplicationMaster(String mainClass,
-            String applicationOptions) throws YarnException, IOException {
+            String applicationOptions, int containerCount) throws YarnException, IOException {
 
         // Create a new application in YARN
         YarnClientApplication app = yarnClient.createApplication();
@@ -90,11 +90,15 @@ public class YarnSubmitter {
         List<String> cmd = Collections.singletonList(Environment.JAVA_HOME.$$()
                 + "/bin/java" + " -Xmx" + maxMem + "M"
                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
+                + " -Dibis.pool.size=" + (containerCount + 1)
+                + " -Dibis.constellation.closed=true"
                 + " -Dibis.constellation.profile=true" + " " + mainClass + " "
                 + hdfsRoot + " " + libPath + " " + applicationOptions + " 1>"
                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.stdout"
                 + " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
                 + "/master.stderr");
+
+        logger.info("Command to run: " + cmd.get(0));
 
         ContainerLaunchContext amContainer = ContainerLaunchContext.newInstance(
                 localResources, appMasterEnv, cmd, null, null, null);

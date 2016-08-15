@@ -212,6 +212,8 @@ public class YarnMaster {
                                 + " -Xmx8192M" + " " + jvmOpts
                                 + " -Dlog4j.configuration=file:./dist/log4j.properties"
                                 + " -Dibis.constellation.profile=true"
+                                + " -Dibis.pool.size=" + (containerCount + 1)
+                                + " -Dibis.constellation.closed=true"
                                 + " -Dyarn.constellation.rack=" + rack + " "
                                 + executor + " " + executorOpts + " 1>"
                                 + ApplicationConstants.LOG_DIR_EXPANSION_VAR
