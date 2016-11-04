@@ -415,7 +415,7 @@ public class ConstellationMaster {
 
         for (Event e : events) {
 
-            SHA1Result result = (SHA1Result) e.data;
+            SHA1Result result = (SHA1Result) e.getData();
 
             if (result.hasFailed()) {
                 System.out.println(result.getOffset() + " " + result.getSize()
