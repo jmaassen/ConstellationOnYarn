@@ -26,10 +26,10 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.SimpleActivity;
+import ibis.constellation.context.ActivityContext;
 
 /**
  * Simple test job that computes a SHA1 hash of a specified chunk of a file.
@@ -60,7 +60,7 @@ public class SHA1Job extends SimpleActivity {
         logger.info("Running SHA1Job " + file + " " + offset + " " + length);
         logger.info(
                 "Executor context = " + getExecutor().getContext().toString());
-        logger.info("Activity context = " + getContext().toString());
+        logger.info("ActivityBase context = " + getContext().toString());
 
         // Create a buffer for the input data
         byte[] buffer = new byte[BUFFERSIZE];
